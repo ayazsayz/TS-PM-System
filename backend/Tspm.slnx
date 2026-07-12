@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Tspm.Api/Tspm.Api.csproj" />
+    <Project Path="src/Tspm.Application/Tspm.Application.csproj" />
+    <Project Path="src/Tspm.Domain/Tspm.Domain.csproj" />
+    <Project Path="src/Tspm.Infrastructure/Tspm.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Tspm.Tests/Tspm.Tests.csproj" />
+  </Folder>
+</Solution>
