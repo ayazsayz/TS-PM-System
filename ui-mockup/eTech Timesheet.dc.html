@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F6F7F9; --surface:#FFFFFF; --surface2:#F0F2F5; --border:#E4E7EC; --border2:#D2D8E0;
+  --text:#161B26; --text2:#57616E; --text3:#8B94A1;
+  --accent:#4757E6;
+  --accent-soft:color-mix(in oklab, var(--accent) 9%, #FFFFFF);
+  --accent-text:var(--accent);
+  --accent-hover:color-mix(in oklab, var(--accent) 86%, #000);
+  --green:#0E8345; --green-soft:#E5F4EA;
+  --amber:#B45309; --amber-soft:#FBEEDC;
+  --red:#C0362C; --red-soft:#FBEAE8;
+  --shadow:0 1px 2px rgba(16,24,40,.05);
+  --shadow-lg:0 16px 40px -12px rgba(16,24,40,.22);
+}
+html[data-theme="dark"]{
+  --bg:#0E1116; --surface:#161A21; --surface2:#1D232C; --border:#272E39; --border2:#39414E;
+  --text:#EEF1F5; --text2:#9CA6B2; --text3:#66707D;
+  --accent-soft:color-mix(in oklab, var(--accent) 24%, #14181F);
+  --accent-text:color-mix(in oklab, var(--accent) 55%, #fff);
+  --accent-hover:color-mix(in oklab, var(--accent) 82%, #fff);
+  --green:#41C980; --green-soft:#132A1D;
+  --amber:#EFA84E; --amber-soft:#2E2212;
+  --red:#F0806F; --red-soft:#331815;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-lg:0 20px 48px -12px rgba(0,0,0,.6);
+}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+*{box-sizing:border-box}
+input,select,textarea,button{font-family:inherit;color:inherit}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-radius:6px}
+input::placeholder,textarea::placeholder{color:var(--text3)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:8px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes toastIn{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes popIn{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<!-- ============ LOGIN ============ -->
+<sc-if value="{{ showLogin }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Login" style="min-height:100vh;min-width:1080px;display:grid;grid-template-columns:1.05fr 1fr;background:var(--bg)">
+  <div style="position:relative;overflow:hidden;background:#10142E;color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:44px 52px">
+    <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:44px 44px;pointer-events:none"></div>
+    <div style="position:absolute;right:-180px;bottom:-180px;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,color-mix(in oklab,var(--accent) 40%,transparent) 0%,transparent 68%);pointer-events:none"></div>
+    <div style="display:flex;align-items:center;gap:10px;position:relative">
+      <div style="width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#fff">e</div>
+      <div style="font-size:17px;font-weight:700;letter-spacing:-.01em">eTech <span style="font-weight:500;color:rgba(255,255,255,.55)">Timesheet</span></div>
+    </div>
+    <div style="position:relative;max-width:520px">
+      <h1 style="margin:0 0 16px;font-size:46px;line-height:1.08;font-weight:700;letter-spacing:-.025em;text-wrap:balance">Time, accounted for.</h1>
+      <p style="margin:0 0 36px;font-size:16px;line-height:1.6;color:rgba(255,255,255,.6);max-width:400px">Log hours, track project health, and approve timesheets — in one fast, focused workspace for the whole organization.</p>
+      <div style="display:flex;gap:14px;align-items:stretch">
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(6px);border-radius:12px;padding:16px 18px;min-width:160px">
+          <div style="font-size:12px;color:rgba(255,255,255,.55);margin-bottom:6px">This week</div>
+          <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums">38.5h</div>
+          <div style="height:5px;border-radius:99px;background:rgba(255,255,255,.14);margin-top:10px;overflow:hidden"><div style="width:76%;height:100%;border-radius:99px;background:var(--accent)"></div></div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(6px);border-radius:12px;padding:16px 18px;min-width:160px">
+          <div style="font-size:12px;color:rgba(255,255,255,.55);margin-bottom:6px">Approvals</div>
+          <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums">4 <span style="font-size:13px;font-weight:500;color:rgba(255,255,255,.55)">pending</span></div>
+          <div style="display:flex;gap:4px;margin-top:12px"><div style="width:18px;height:5px;border-radius:99px;background:#EFA84E"></div><div style="width:18px;height:5px;border-radius:99px;background:#EFA84E"></div><div style="width:18px;height:5px;border-radius:99px;background:#41C980"></div><div style="width:18px;height:5px;border-radius:99px;background:#41C980"></div></div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(6px);border-radius:12px;padding:16px 18px;min-width:150px">
+          <div style="font-size:12px;color:rgba(255,255,255,.55);margin-bottom:6px">Billable</div>
+          <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums">78%</div>
+          <div style="font-size:11.5px;color:#41C980;margin-top:10px;font-weight:600">▲ 4% vs last week</div>
+        </div>
+      </div>
+    </div>
+    <div style="position:relative;font-size:12.5px;color:rgba(255,255,255,.4)">Trusted by teams at Nexbank · Vertex Retail · MedCore Health · GreenGrid Energy</div>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:40px">
+    <div onClick="{{ toggleTheme }}" style="position:absolute;top:24px;right:28px;width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2)" style-hover="background:var(--surface2)">
+      <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="3.2"></circle><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M12.6 3.4l-1.1 1.1M4.5 11.5l-1.1 1.1"></path></svg></sc-if>
+      <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13.5 9.5A5.7 5.7 0 0 1 6.5 2.5a5.7 5.7 0 1 0 7 7z"></path></svg></sc-if>
+    </div>
+    <div style="width:100%;max-width:392px;animation:fadeUp .5s ease both">
+      <h2 style="margin:0 0 6px;font-size:26px;font-weight:700;letter-spacing:-.02em">Welcome back</h2>
+      <p style="margin:0 0 28px;font-size:14px;color:var(--text2)">Sign in to your eTech workspace</p>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+        <button onClick="{{ doLogin }}" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-size:14px;font-weight:600;cursor:pointer;color:var(--text)" style-hover="background:var(--surface2)">
+          <svg width="16" height="16" viewBox="0 0 16 16"><rect x="0.5" y="0.5" width="7" height="7" fill="#F25022"></rect><rect x="8.5" y="0.5" width="7" height="7" fill="#7FBA00"></rect><rect x="0.5" y="8.5" width="7" height="7" fill="#00A4EF"></rect><rect x="8.5" y="8.5" width="7" height="7" fill="#FFB900"></rect></svg>
+          Continue with Microsoft
+        </button>
+        <button onClick="{{ doLogin }}" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-size:14px;font-weight:600;cursor:pointer;color:var(--text)" style-hover="background:var(--surface2)">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 1.8l5.5 2.4v3.4c0 3.3-2.3 5.7-5.5 6.6-3.2-.9-5.5-3.3-5.5-6.6V4.2z"></path><path d="M5.8 8l1.6 1.6 2.8-3"></path></svg>
+          Single sign-on (SSO)
+        </button>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px"><div style="flex:1;height:1px;background:var(--border)"></div><span style="font-size:11.5px;color:var(--text3);font-weight:500;letter-spacing:.04em">OR</span><div style="flex:1;height:1px;background:var(--border)"></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text2);margin-bottom:6px">Work email</label>
+          <input type="email" defaultValue="alex.morgan@etech.io" style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-size:14px">
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+            <label style="font-size:12.5px;font-weight:600;color:var(--text2)">Password</label>
+            <span style="font-size:12.5px;font-weight:500;color:var(--accent-text);cursor:pointer" style-hover="text-decoration:underline">Forgot password?</span>
+          </div>
+          <input type="password" defaultValue="••••••••••" style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-size:14px">
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer;user-select:none">
+          <input type="checkbox" defaultChecked style="width:15px;height:15px;accent-color:var(--accent)"> Keep me signed in for 30 days
+        </label>
+        <button onClick="{{ doLogin }}" style="width:100%;padding:11px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px" style-hover="background:var(--accent-hover)">Sign in</button>
+      </div>
+      <p style="margin:26px 0 0;font-size:12.5px;color:var(--text3);text-align:center">Need access? Contact your workspace administrator</p>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ APP SHELL ============ -->
+<sc-if value="{{ showApp }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:238px 1fr;height:100vh;min-width:1180px;overflow:hidden;background:var(--bg)">
+
+  <!-- SIDEBAR -->
+  <aside style="display:flex;flex-direction:column;background:var(--surface);border-right:1px solid var(--border);padding:16px 12px;overflow-y:auto;transition:background .25s;color:var(--text);{{ sideVars }}">
+    <div style="display:flex;align-items:center;gap:9px;padding:2px 6px 0">
+      <div style="width:27px;height:27px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff">e</div>
+      <div style="font-size:14.5px;font-weight:700;letter-spacing:-.01em">eTech <span style="font-weight:500;color:var(--text3)">Timesheet</span></div>
+    </div>
+    <div onClick="{{ openPalette }}" style="display:flex;align-items:center;gap:8px;margin:16px 2px 6px;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text3);font-size:13px;cursor:pointer" style-hover="border-color:var(--border2)">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5L14 14"></path></svg>
+      Search
+      <span style="margin-left:auto;font-size:11px;border:1px solid var(--border);border-radius:5px;padding:1px 5px;background:var(--surface);color:var(--text3)">⌘K</span>
+    </div>
+    <div style="font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--text3);padding:14px 8px 6px">MY WORK</div>
+    <nav style="display:flex;flex-direction:column;gap:2px">
+      <div onClick="{{ go_dashboard }}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:{{ navWt_dashboard }};color:{{ navFg_dashboard }};background:{{ navBg_dashboard }}">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="5" rx="1.2"></rect><rect x="9" y="2" width="5" height="5" rx="1.2"></rect><rect x="2" y="9" width="5" height="5" rx="1.2"></rect><rect x="9" y="9" width="5" height="5" rx="1.2"></rect></svg>
+        Dashboard
+      </div>
+      <div onClick="{{ go_daily }}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:{{ navWt_daily }};color:{{ navFg_daily }};background:{{ navBg_daily }}">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6"></circle><path d="M8 4.8V8l2.2 1.6"></path></svg>
+        Daily Entry
+      </div>
+      <div onClick="{{ go_weekly }}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:{{ navWt_weekly }};color:{{ navFg_weekly }};background:{{ navBg_weekly }}">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="3" width="12" height="11" rx="1.5"></rect><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"></path></svg>
+        Weekly Timesheet
+      </div>
+    </nav>
+    <div style="font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--text3);padding:18px 8px 6px">MANAGEMENT</div>
+    <nav style="display:flex;flex-direction:column;gap:2px">
+      <div onClick="{{ go_manager }}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:{{ navWt_manager }};color:{{ navFg_manager }};background:{{ navBg_manager }}">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5.5" cy="5" r="2.4"></circle><path d="M1.6 13.4c.3-2.1 1.9-3.6 3.9-3.6s3.6 1.5 3.9 3.6"></path><circle cx="11.5" cy="5.6" r="1.9"></circle><path d="M11 9.6c1.9.2 3.2 1.6 3.4 3.5"></path></svg>
+        Team Overview
+      </div>
+      <div onClick="{{ go_approvals }}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:{{ navWt_approvals }};color:{{ navFg_approvals }};background:{{ navBg_approvals }}">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6.2"></circle><path d="M5.4 8.1l1.8 1.8 3.4-3.8"></path></svg>
+        Approvals
+        <sc-if value="{{ showApprBadge }}" hint-placeholder-val="{{ false }}"><span style="margin-left:auto;min-width:18px;height:18px;border-radius:99px;background:var(--amber-soft);color:var(--amber);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px">{{ pendingCount }}</span></sc-if>
+      </div>
+      <div onClick="{{ go_projects }}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:{{ navWt_projects }};color:{{ navFg_projects }};background:{{ navBg_projects }}">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4.5C2 3.7 2.7 3 3.5 3H6l1.5 2h5c.8 0 1.5.7 1.5 1.5v6c0 .8-.7 1.5-1.5 1.5h-9C2.7 14 2 13.3 2 12.5z"></path></svg>
+        Projects
+      </div>
+      <div onClick="{{ go_reports }}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:{{ navWt_reports }};color:{{ navFg_reports }};background:{{ navBg_reports }}">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 13.5V9M8 13.5V3.5M13 13.5V6.5"></path></svg>
+        Reports
+      </div>
+    </nav>
+    <div style="margin-top:auto;padding-top:16px">
+      <div style="border-top:1px solid var(--border);padding-top:12px;display:flex;align-items:center;gap:10px;padding-left:6px;padding-right:4px">
+        <div style="width:32px;height:32px;border-radius:99px;background:var(--accent-soft);color:var(--accent-text);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">AM</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Alex Morgan</div>
+          <div style="font-size:11.5px;color:var(--text3)">Senior Consultant</div>
+        </div>
+        <div onClick="{{ doLogout }}" title="Sign out" style="width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3)" style-hover="background:var(--surface2);color:var(--text)">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 2H3.5C2.7 2 2 2.7 2 3.5v9c0 .8.7 1.5 1.5 1.5H6M10.5 11l3-3-3-3M13.5 8H6"></path></svg>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div style="display:flex;flex-direction:column;min-width:0;overflow:hidden">
+    <!-- TOPBAR -->
+    <header style="display:flex;align-items:center;gap:14px;padding:0 24px;height:56px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;position:relative;z-index:20">
+      <div style="font-size:15px;font-weight:650;letter-spacing:-.01em">{{ screenTitle }}</div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+        <div onClick="{{ toggleTheme }}" title="Toggle theme" style="width:34px;height:34px;border-radius:9px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);background:var(--surface)" style-hover="background:var(--surface2)">
+          <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="3.2"></circle><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M12.6 3.4l-1.1 1.1M4.5 11.5l-1.1 1.1"></path></svg></sc-if>
+          <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13.5 9.5A5.7 5.7 0 0 1 6.5 2.5a5.7 5.7 0 1 0 7 7z"></path></svg></sc-if>
+        </div>
+        <div onClick="{{ toggleTweaks }}" title="Appearance tweaks" style="width:34px;height:34px;border-radius:9px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);background:var(--surface)" style-hover="background:var(--surface2)">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4.5h7M12 4.5h2M2 11.5h2M7 11.5h7"></path><circle cx="10.5" cy="4.5" r="1.8"></circle><circle cx="5.5" cy="11.5" r="1.8"></circle></svg>
+        </div>
+        <div onClick="{{ toggleNotif }}" title="Notifications" style="position:relative;width:34px;height:34px;border-radius:9px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);background:var(--surface)" style-hover="background:var(--surface2)">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 1.8a4.2 4.2 0 0 1 4.2 4.2c0 3 1.3 4.4 1.3 4.4H2.5s1.3-1.4 1.3-4.4A4.2 4.2 0 0 1 8 1.8zM6.5 13a1.6 1.6 0 0 0 3 0"></path></svg>
+          <sc-if value="{{ showBadge }}" hint-placeholder-val="{{ true }}"><span style="position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:99px;background:var(--red);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--surface)">{{ unread }}</span></sc-if>
+        </div>
+        <div style="width:34px;height:34px;border-radius:99px;background:var(--accent-soft);color:var(--accent-text);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border)">AM</div>
+      </div>
+      <!-- NOTIFICATION PANEL -->
+      <sc-if value="{{ notifOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;top:52px;right:70px;width:360px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-lg);animation:popIn .18s ease both;overflow:hidden;z-index:60">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)">
+          <div style="font-size:14px;font-weight:650">Notifications</div>
+          <div onClick="{{ markAllRead }}" style="font-size:12.5px;font-weight:600;color:var(--accent-text);cursor:pointer" style-hover="text-decoration:underline">Mark all read</div>
+        </div>
+        <div style="max-height:380px;overflow-y:auto">
+          <div style="display:flex;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer" style-hover="background:var(--surface2)">
+            <div style="width:32px;height:32px;border-radius:9px;background:var(--amber-soft);color:var(--amber);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 5.5V9M8 11.2v.1M6.9 2.2L1.6 11.4a1.3 1.3 0 0 0 1.1 2h10.6a1.3 1.3 0 0 0 1.1-2L9.1 2.2a1.3 1.3 0 0 0-2.2 0z"></path></svg></div>
+            <div style="flex:1"><div style="font-size:13px;line-height:1.45"><strong>Atlas Mobile Banking</strong> exceeded its estimated hours by 110h</div><div style="font-size:11.5px;color:var(--text3);margin-top:3px">Project risk · 25 min ago</div></div>
+          </div>
+          <div style="display:flex;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer" style-hover="background:var(--surface2)">
+            <div style="width:32px;height:32px;border-radius:9px;background:var(--accent-soft);color:var(--accent-text);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6"></circle><path d="M8 4.8V8l2.2 1.6"></path></svg></div>
+            <div style="flex:1"><div style="font-size:13px;line-height:1.45">4 timesheets are <strong>awaiting your approval</strong> for the week of Jun 22</div><div style="font-size:11.5px;color:var(--text3);margin-top:3px">Approvals · 1 h ago</div></div>
+          </div>
+          <div style="display:flex;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer" style-hover="background:var(--surface2)">
+            <div style="width:32px;height:32px;border-radius:9px;background:var(--red-soft);color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6.2"></circle><path d="M5.8 5.8l4.4 4.4M10.2 5.8l-4.4 4.4"></path></svg></div>
+            <div style="flex:1"><div style="font-size:13px;line-height:1.45"><strong>Tom Okafor</strong> hasn't submitted last week's timesheet — escalated to you</div><div style="font-size:11.5px;color:var(--text3);margin-top:3px">Escalation · 3 h ago</div></div>
+          </div>
+          <div style="display:flex;gap:12px;padding:13px 16px;cursor:pointer" style-hover="background:var(--surface2)">
+            <div style="width:32px;height:32px;border-radius:9px;background:var(--green-soft);color:var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 8.5l3.5 3.5 7.5-8"></path></svg></div>
+            <div style="flex:1"><div style="font-size:13px;line-height:1.45">Your timesheet for <strong>Jun 15 – 21</strong> was approved by Dana Whitfield</div><div style="font-size:11.5px;color:var(--text3);margin-top:3px">Timesheet · Yesterday</div></div>
+          </div>
+        </div>
+        <div style="padding:10px 16px;border-top:1px solid var(--border);text-align:center;font-size:12.5px;font-weight:600;color:var(--text2);cursor:pointer" style-hover="background:var(--surface2)">View all notifications</div>
+      </div>
+      </sc-if>
+    </header>
+
+    <!-- CONTENT -->
+    <main style="flex:1;overflow-y:auto;min-height:0;zoom:{{ uiZoom }}">
+
+      <!-- ===== EMPLOYEE DASHBOARD ===== -->
+      <sc-if value="{{ show_dashboard }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Employee Dashboard" style="padding:26px 28px 40px;max-width:1240px;margin:0 auto;animation:fadeUp .35s ease both">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap">
+          <div>
+            <h1 style="margin:0 0 4px;font-size:23px;font-weight:700;letter-spacing:-.02em">Good morning, Alex</h1>
+            <div style="font-size:13.5px;color:var(--text3)">Friday, July 3 · Week 27 · <span style="color:var(--amber);font-weight:600">Timesheet due today, 6 PM</span></div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button onClick="{{ go_weekly }}" style="display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;color:var(--text2)" style-hover="background:var(--surface2)">Review week</button>
+            <button onClick="{{ go_daily }}" style="display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer" style-hover="background:var(--accent-hover)">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"></path></svg>
+              Log time
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI ROW -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px">
+            <div style="font-size:12.5px;font-weight:600;color:var(--text3);margin-bottom:10px">Today</div>
+            <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ dayTotal }}<span style="font-size:14px;font-weight:500;color:var(--text3)"> / 8h</span></div>
+            <div style="height:5px;border-radius:99px;background:var(--surface2);margin-top:12px;overflow:hidden"><div style="width:{{ dayPct }};height:100%;border-radius:99px;background:{{ dayBarColor }};transition:width .3s"></div></div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px">
+            <div style="font-size:12.5px;font-weight:600;color:var(--text3);margin-bottom:10px">This week</div>
+            <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ weekTotal }}<span style="font-size:14px;font-weight:500;color:var(--text3)"> / 40h</span></div>
+            <div style="height:5px;border-radius:99px;background:var(--surface2);margin-top:12px;overflow:hidden"><div style="width:{{ weekPctW }};height:100%;border-radius:99px;background:var(--accent);transition:width .3s"></div></div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px">
+            <div style="font-size:12.5px;font-weight:600;color:var(--text3);margin-bottom:10px">Billable ratio</div>
+            <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums">78%</div>
+            <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:12px">▲ 4% vs last week</div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px">
+            <div style="font-size:12.5px;font-weight:600;color:var(--text3);margin-bottom:10px">Pending submission</div>
+            <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums">1<span style="font-size:14px;font-weight:500;color:var(--text3)"> week</span></div>
+            <div onClick="{{ go_weekly }}" style="font-size:12px;color:var(--accent-text);font-weight:600;margin-top:12px;cursor:pointer" style-hover="text-decoration:underline">Submit now →</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.9fr 1fr;gap:14px;align-items:start">
+          <!-- LEFT -->
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+                <div style="font-size:14.5px;font-weight:650">Hours this week</div>
+                <div style="display:flex;gap:14px;font-size:12px;color:var(--text3)">
+                  <span style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:3px;background:var(--accent)"></span>Billable</span>
+                  <span style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:3px;background:var(--border2)"></span>Non-billable</span>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:14px;align-items:end;height:150px">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end"><div style="width:100%;max-width:44px;display:flex;flex-direction:column;gap:2px"><div style="height:8px;border-radius:4px 4px 2px 2px;background:var(--border2)"></div><div style="height:104px;border-radius:2px 2px 4px 4px;background:var(--accent)"></div></div><div style="font-size:11.5px;color:var(--text3);font-weight:600">Mon</div></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end"><div style="width:100%;max-width:44px;display:flex;flex-direction:column;gap:2px"><div style="height:14px;border-radius:4px 4px 2px 2px;background:var(--border2)"></div><div style="height:98px;border-radius:2px 2px 4px 4px;background:var(--accent)"></div></div><div style="font-size:11.5px;color:var(--text3);font-weight:600">Tue</div></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end"><div style="width:100%;max-width:44px;display:flex;flex-direction:column;gap:2px"><div style="height:6px;border-radius:4px 4px 2px 2px;background:var(--border2)"></div><div style="height:106px;border-radius:2px 2px 4px 4px;background:var(--accent)"></div></div><div style="font-size:11.5px;color:var(--text3);font-weight:600">Wed</div></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end"><div style="width:100%;max-width:44px;display:flex;flex-direction:column;gap:2px"><div style="height:10px;border-radius:4px 4px 2px 2px;background:var(--border2)"></div><div style="height:102px;border-radius:2px 2px 4px 4px;background:var(--accent)"></div></div><div style="font-size:11.5px;color:var(--text3);font-weight:600">Thu</div></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end"><div style="width:100%;max-width:44px;display:flex;flex-direction:column;gap:2px"><div style="height:91px;border-radius:2px 2px 4px 4px;background:var(--accent);opacity:.55;border:1px dashed var(--accent)"></div></div><div style="font-size:11.5px;color:var(--accent-text);font-weight:700">Fri</div></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end"><div style="width:100%;max-width:44px"><div style="height:3px;border-radius:4px;background:var(--surface2)"></div></div><div style="font-size:11.5px;color:var(--text3);font-weight:600">Sat</div></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end"><div style="width:100%;max-width:44px"><div style="height:3px;border-radius:4px;background:var(--surface2)"></div></div><div style="font-size:11.5px;color:var(--text3);font-weight:600">Sun</div></div>
+              </div>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <div style="font-size:14.5px;font-weight:650">My tasks</div>
+                <div style="font-size:12.5px;color:var(--text3)">{{ tasksOpenLabel }}</div>
+              </div>
+              <sc-for list="{{ tasks }}" as="t" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--border)">
+                  <div onClick="{{ t.onToggle }}" style="width:18px;height:18px;border-radius:6px;border:1.5px solid {{ t.boxBorder }};background:{{ t.boxBg }};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+                    <sc-if value="{{ t.done }}" hint-placeholder-val="{{ false }}"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M2.8 8.6l3.2 3.2 7.2-8"></path></svg></sc-if>
+                  </div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:13.5px;font-weight:550;text-decoration:{{ t.deco }};color:{{ t.fg }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.label }}</div>
+                  </div>
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);background:var(--surface2);border-radius:99px;padding:3px 10px;white-space:nowrap"><span style="width:7px;height:7px;border-radius:99px;background:{{ t.color }}"></span>{{ t.project }}</span>
+                  <span style="font-size:12px;color:{{ t.dueColor }};font-weight:600;width:72px;text-align:right">{{ t.due }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- RIGHT -->
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;align-items:center">
+              <div style="font-size:14.5px;font-weight:650;align-self:flex-start;margin-bottom:14px">Weekly progress</div>
+              <div style="position:relative;width:132px;height:132px">
+                <svg width="132" height="132" viewBox="0 0 132 132">
+                  <circle cx="66" cy="66" r="56" fill="none" stroke="var(--surface2)" stroke-width="11"></circle>
+                  <circle cx="66" cy="66" r="56" fill="none" stroke="var(--accent)" stroke-width="11" stroke-linecap="round" stroke-dasharray="{{ ringDash }} 351.9" transform="rotate(-90 66 66)" style="transition:stroke-dasharray .4s"></circle>
+                </svg>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                  <div style="font-size:24px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ weekPct }}%</div>
+                  <div style="font-size:11.5px;color:var(--text3)">of 40h</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:18px;margin-top:16px;font-size:12.5px;color:var(--text2)">
+                <span><strong style="color:var(--text);font-variant-numeric:tabular-nums">{{ weekTotal }}h</strong> logged</span>
+                <span><strong style="color:var(--text);font-variant-numeric:tabular-nums">{{ weekRemaining }}h</strong> remaining</span>
+              </div>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div style="font-size:14.5px;font-weight:650">My projects</div>
+                <div onClick="{{ go_projects }}" style="font-size:12.5px;font-weight:600;color:var(--accent-text);cursor:pointer" style-hover="text-decoration:underline">All →</div>
+              </div>
+              <div style="display:flex;flex-direction:column">
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+                  <span style="width:9px;height:9px;border-radius:3px;background:#4757E6;flex-shrink:0"></span>
+                  <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Aurora Cloud Migration</div><div style="font-size:11.5px;color:var(--text3)">Nexbank · 18.5h this week</div></div>
+                  <span style="font-size:11.5px;font-weight:700;color:var(--green);background:var(--green-soft);border-radius:99px;padding:3px 9px">72%</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+                  <span style="width:9px;height:9px;border-radius:3px;background:#7839EE;flex-shrink:0"></span>
+                  <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Orion Data Platform</div><div style="font-size:11.5px;color:var(--text3)">MedCore Health · 12h this week</div></div>
+                  <span style="font-size:11.5px;font-weight:700;color:var(--green);background:var(--green-soft);border-radius:99px;padding:3px 9px">38%</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 0">
+                  <span style="width:9px;height:9px;border-radius:3px;background:#0E9384;flex-shrink:0"></span>
+                  <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Helios ERP Rollout</div><div style="font-size:11.5px;color:var(--text3)">Vertex Retail · 7h this week</div></div>
+                  <span style="font-size:11.5px;font-weight:700;color:var(--amber);background:var(--amber-soft);border-radius:99px;padding:3px 9px">88%</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px">
+              <div style="font-size:14.5px;font-weight:650;margin-bottom:10px">Upcoming deadlines</div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)">
+                  <div style="width:40px;text-align:center;background:var(--red-soft);border-radius:8px;padding:5px 0"><div style="font-size:9.5px;font-weight:700;color:var(--red);letter-spacing:.05em">JUL</div><div style="font-size:15px;font-weight:700;color:var(--red);line-height:1.1">08</div></div>
+                  <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">Zephyr Portal Redesign</div><div style="font-size:11.5px;color:var(--red);font-weight:600">Delayed · due in 5 days</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)">
+                  <div style="width:40px;text-align:center;background:var(--amber-soft);border-radius:8px;padding:5px 0"><div style="font-size:9.5px;font-weight:700;color:var(--amber);letter-spacing:.05em">JUL</div><div style="font-size:15px;font-weight:700;color:var(--amber);line-height:1.1">10</div></div>
+                  <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">Atlas Mobile Banking</div><div style="font-size:11.5px;color:var(--text3)">Go-live checkpoint</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:9px 0">
+                  <div style="width:40px;text-align:center;background:var(--surface2);border-radius:8px;padding:5px 0"><div style="font-size:9.5px;font-weight:700;color:var(--text3);letter-spacing:.05em">JUL</div><div style="font-size:15px;font-weight:700;color:var(--text2);line-height:1.1">31</div></div>
+                  <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">Helios ERP Rollout</div><div style="font-size:11.5px;color:var(--text3)">Phase 2 delivery</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ===== DAILY ENTRY ===== -->
+      <sc-if value="{{ show_daily }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Daily Timesheet Entry" style="padding:26px 28px 40px;max-width:1240px;margin:0 auto;animation:fadeUp .35s ease both">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+          <div>
+            <h1 style="margin:0 0 4px;font-size:23px;font-weight:700;letter-spacing:-.02em">{{ activeDayLabel }}</h1>
+            <div style="font-size:13.5px;color:var(--text3)">Week 27 · Auto-save on · <span style="color:var(--text2)">Tab / Enter to move between cells</span></div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button onClick="{{ duplicateYesterday }}" style="display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;color:var(--text2)" style-hover="background:var(--surface2)">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="5" y="5" width="9" height="9" rx="1.5"></rect><path d="M11 5V3.5C11 2.7 10.3 2 9.5 2h-6C2.7 2 2 2.7 2 3.5v6c0 .8.7 1.5 1.5 1.5H5"></path></svg>
+              Duplicate yesterday
+            </button>
+            <button onClick="{{ saveDraft }}" style="display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;color:var(--text2)" style-hover="background:var(--surface2)">Save draft</button>
+            <button onClick="{{ submitDay }}" style="display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer" style-hover="background:var(--accent-hover)">Submit day</button>
+          </div>
+        </div>
+
+        <!-- DAY STRIP -->
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:14px">
+          <sc-for list="{{ days }}" as="d" hint-placeholder-count="7">
+            <div onClick="{{ d.onClick }}" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border-radius:10px;border:1px solid {{ d.border }};background:{{ d.bg }};color:{{ d.fg }};cursor:pointer;transition:all .15s" style-hover="border-color:var(--accent)">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.05em;opacity:.75">{{ d.name }}</div>
+              <div style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums">{{ d.num }}</div>
+              <div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:{{ d.sub }}"><span style="width:6px;height:6px;border-radius:99px;background:{{ d.dotBg }}"></span>{{ d.subLabel }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- PROGRESS -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;gap:18px">
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:13px;font-weight:650;font-variant-numeric:tabular-nums">{{ dayCountLabel }}</span>
+              <span style="font-size:12.5px;font-weight:600;color:{{ dayRemainColor }}">{{ dayRemainLabel }}</span>
+            </div>
+            <div style="height:8px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="width:{{ dayPct }};height:100%;border-radius:99px;background:{{ dayBarColor }};transition:width .3s ease"></div></div>
+          </div>
+        </div>
+
+        <!-- ENTRY GRID -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:220px 150px 1fr 78px 78px 66px 96px 70px 36px;gap:0;padding:0 12px;background:var(--surface2);border-bottom:1px solid var(--border)">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:10px 8px">PROJECT</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:10px 8px">TASK</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:10px 8px">DESCRIPTION</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:10px 8px">START</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:10px 8px">END</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:10px 8px">BREAK</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:10px 8px">BILLABLE</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:10px 8px;text-align:right">HOURS</div>
+            <div></div>
+          </div>
+          <sc-if value="{{ noEntries }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:44px 20px;text-align:center">
+              <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:4px">No time logged for this day</div>
+              <div style="font-size:12.5px;color:var(--text3);margin-bottom:16px">Add an entry, or copy yesterday's schedule to get started.</div>
+              <button onClick="{{ addEntry }}" style="padding:8px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;color:var(--accent-text)" style-hover="background:var(--accent-soft)">+ Add first entry</button>
+            </div>
+          </sc-if>
+          <sc-for list="{{ entries }}" as="e" hint-placeholder-count="3">
+            <div style="display:grid;grid-template-columns:220px 150px 1fr 78px 78px 66px 96px 70px 36px;align-items:center;padding:4px 12px;border-bottom:1px solid var(--border)" style-hover="background:var(--surface2)">
+              <div style="display:flex;align-items:center;gap:8px;padding:0 8px">
+                <span style="width:9px;height:9px;border-radius:3px;background:{{ e.color }};flex-shrink:0"></span>
+                <select value="{{ e.pv }}" onChange="{{ e.onProject }}" style="flex:1;min-width:0;border:none;background:transparent;font-size:13px;font-weight:600;padding:9px 0;cursor:pointer;appearance:none">
+                  <sc-for list="{{ projectOptions }}" as="opt" hint-placeholder-count="3"><option value="{{ opt.idx }}">{{ opt.name }}</option></sc-for>
+                </select>
+              </div>
+              <input value="{{ e.task }}" onChange="{{ e.onTask }}" placeholder="Task" style="border:none;background:transparent;font-size:13px;padding:11px 8px;min-width:0">
+              <input value="{{ e.desc }}" onChange="{{ e.onDesc }}" placeholder="What did you work on?" style="border:none;background:transparent;font-size:13px;padding:11px 8px;min-width:0;color:var(--text2)">
+              <input value="{{ e.start }}" onChange="{{ e.onStart }}" placeholder="—" style="border:none;background:transparent;font-size:13px;padding:11px 8px;font-variant-numeric:tabular-nums;min-width:0">
+              <input value="{{ e.end }}" onChange="{{ e.onEnd }}" placeholder="—" style="border:none;background:transparent;font-size:13px;padding:11px 8px;font-variant-numeric:tabular-nums;min-width:0">
+              <input value="{{ e.brk }}" onChange="{{ e.onBrk }}" placeholder="—" style="border:none;background:transparent;font-size:13px;padding:11px 8px;font-variant-numeric:tabular-nums;min-width:0">
+              <div style="padding:0 8px"><span onClick="{{ e.onBillable }}" style="display:inline-flex;align-items:center;font-size:11.5px;font-weight:700;color:{{ e.billFg }};background:{{ e.billBg }};border-radius:99px;padding:4px 10px;cursor:pointer;user-select:none;white-space:nowrap">{{ e.billLabel }}</span></div>
+              <input value="{{ e.hours }}" onChange="{{ e.onHours }}" type="number" step="0.25" min="0" placeholder="0" style="border:1px solid var(--border);border-radius:7px;background:var(--bg);font-size:13.5px;font-weight:650;padding:7px 8px;text-align:right;font-variant-numeric:tabular-nums;min-width:0">
+              <div onClick="{{ e.onRemove }}" title="Remove entry" style="width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);justify-self:end" style-hover="background:var(--red-soft);color:var(--red)">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 4.5h10M6.5 2.5h3M5 4.5l.5 9h5l.5-9"></path></svg>
+              </div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ hasEntries }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:var(--surface2)">
+              <button onClick="{{ addEntry }}" style="border:none;background:transparent;font-size:13px;font-weight:600;color:var(--accent-text);cursor:pointer;padding:4px 0" style-hover="text-decoration:underline">+ Add entry</button>
+              <div style="font-size:13px;color:var(--text2)">Day total&nbsp;&nbsp;<span style="font-size:15px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums">{{ dayTotal }}h</span></div>
+            </div>
+          </sc-if>
+        </div>
+
+        <!-- QUICK ADD -->
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:12.5px;font-weight:600;color:var(--text3)">Quick add from favorites:</span>
+          <sc-for list="{{ favProjects }}" as="f" hint-placeholder-count="4">
+            <span onClick="{{ f.onClick }}" style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--text2);background:var(--surface);border:1px solid var(--border2);border-radius:99px;padding:6px 12px;cursor:pointer" style-hover="border-color:var(--accent);color:var(--accent-text)"><span style="width:8px;height:8px;border-radius:99px;background:{{ f.color }}"></span>{{ f.name }}</span>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ===== WEEKLY TIMESHEET ===== -->
+      <sc-if value="{{ show_weekly }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Weekly Timesheet" style="padding:26px 28px 40px;max-width:1240px;margin:0 auto;animation:fadeUp .35s ease both">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+          <div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+              <h1 style="margin:0;font-size:23px;font-weight:700;letter-spacing:-.02em">Week of {{ weekLabel }}</h1>
+              <span style="font-size:11.5px;font-weight:700;color:{{ weekStatusFg }};background:{{ weekStatusBg }};border-radius:99px;padding:4px 11px;letter-spacing:.02em">{{ weekStatus }}</span>
+            </div>
+            <div style="font-size:13.5px;color:var(--text3)">Approver: Dana Whitfield · Due Friday 6 PM</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <div style="display:flex;border:1px solid var(--border2);border-radius:9px;overflow:hidden">
+              <div onClick="{{ prevWeek }}" style="width:34px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);background:var(--surface)" style-hover="background:var(--surface2)">‹</div>
+              <div style="width:1px;background:var(--border)"></div>
+              <div onClick="{{ nextWeek }}" style="width:34px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);background:var(--surface)" style-hover="background:var(--surface2)">›</div>
+            </div>
+            <button onClick="{{ exportPdf }}" style="padding:9px 13px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;color:var(--text2)" style-hover="background:var(--surface2)">PDF</button>
+            <button onClick="{{ exportXls }}" style="padding:9px 13px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;color:var(--text2)" style-hover="background:var(--surface2)">Excel</button>
+            <button onClick="{{ submitWeek }}" style="padding:9px 16px;border-radius:9px;border:none;background:{{ submitBg }};color:{{ submitFg }};font-size:13px;font-weight:600;cursor:{{ submitCursor }}">{{ submitLabel }}</button>
+          </div>
+        </div>
+
+        <!-- SUBMISSION PROGRESS -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;gap:20px">
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:13px;font-weight:650;font-variant-numeric:tabular-nums">{{ weekTotal }} / 40h · {{ weekPct }}%</span>
+              <span style="font-size:12.5px;color:var(--text3)"><span style="font-weight:600;color:var(--text2)">{{ weekRemaining }}h</span> to complete the week</span>
+            </div>
+            <div style="height:8px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="width:{{ weekPctW }};height:100%;border-radius:99px;background:var(--accent);transition:width .3s ease"></div></div>
+          </div>
+        </div>
+
+        <!-- WEEK GRID -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+          <div style="display:grid;grid-template-columns:minmax(230px,1.4fr) repeat(7,minmax(64px,1fr)) 84px 36px;background:var(--surface2);border-bottom:1px solid var(--border);padding:0 12px">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:11px 8px">PROJECT / TASK</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:11px 6px;text-align:center">MON<br><span style="font-weight:600;color:var(--text3)">29</span></div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:11px 6px;text-align:center">TUE<br><span style="font-weight:600;color:var(--text3)">30</span></div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:11px 6px;text-align:center">WED<br><span style="font-weight:600;color:var(--text3)">1</span></div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:11px 6px;text-align:center">THU<br><span style="font-weight:600;color:var(--text3)">2</span></div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--accent-text);padding:11px 6px;text-align:center">FRI<br><span style="font-weight:600">3</span></div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:11px 6px;text-align:center;opacity:.6">SAT<br><span style="font-weight:600">4</span></div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:11px 6px;text-align:center;opacity:.6">SUN<br><span style="font-weight:600">5</span></div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:11px 8px;text-align:right">TOTAL</div>
+            <div></div>
+          </div>
+          <sc-for list="{{ weekRows }}" as="r" hint-placeholder-count="4">
+            <div style="display:grid;grid-template-columns:minmax(230px,1.4fr) repeat(7,minmax(64px,1fr)) 84px 36px;align-items:center;border-bottom:1px solid var(--border);padding:4px 12px" style-hover="background:var(--surface2)">
+              <div style="display:flex;align-items:center;gap:9px;padding:8px;min-width:0">
+                <span style="width:9px;height:9px;border-radius:3px;background:{{ r.color }};flex-shrink:0"></span>
+                <div style="min-width:0">
+                  <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</div>
+                  <div style="font-size:11.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.client }} · {{ r.task }}</div>
+                </div>
+              </div>
+              <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="7">
+                <div style="padding:3px;background:{{ c.bg }}"><input value="{{ c.val }}" onChange="{{ c.onChange }}" type="number" step="0.5" min="0" placeholder="·" style="width:100%;border:1px solid transparent;border-radius:7px;background:transparent;font-size:13px;font-weight:600;padding:8px 4px;text-align:center;font-variant-numeric:tabular-nums" style-hover="border-color:var(--border2);background:var(--surface)"></div>
+              </sc-for>
+              <div style="font-size:13.5px;font-weight:700;text-align:right;padding:0 8px;font-variant-numeric:tabular-nums">{{ r.total }}</div>
+              <div onClick="{{ r.onRemoveRow }}" title="Remove row" style="width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);justify-self:end" style-hover="background:var(--red-soft);color:var(--red)">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 4.5h10M6.5 2.5h3M5 4.5l.5 9h5l.5-9"></path></svg>
+              </div>
+            </div>
+          </sc-for>
+          <div style="display:grid;grid-template-columns:minmax(230px,1.4fr) repeat(7,minmax(64px,1fr)) 84px 36px;align-items:center;background:var(--surface2);padding:4px 12px">
+            <button onClick="{{ addWeekRow }}" style="border:none;background:transparent;font-size:13px;font-weight:600;color:var(--accent-text);cursor:pointer;text-align:left;padding:10px 8px" style-hover="text-decoration:underline">+ Add project row</button>
+            <sc-for list="{{ dayTotals }}" as="dt" hint-placeholder-count="7">
+              <div style="font-size:13px;font-weight:700;text-align:center;color:{{ dt.color }};font-variant-numeric:tabular-nums;padding:10px 4px">{{ dt.val }}</div>
+            </sc-for>
+            <div style="font-size:14.5px;font-weight:700;text-align:right;padding:0 8px;font-variant-numeric:tabular-nums;color:var(--accent-text)">{{ weekTotal }}h</div>
+            <div></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;margin-top:12px;font-size:12px;color:var(--text3)">
+          <span>Standard day = 8h · overtime needs a comment</span>
+          <span style="margin-left:auto">Approved weeks lock automatically · <span onClick="{{ printSheet }}" style="color:var(--accent-text);font-weight:600;cursor:pointer">Print</span></span>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ===== APPROVALS ===== -->
+      <sc-if value="{{ show_approvals }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Approvals" style="padding:26px 28px 40px;max-width:1240px;margin:0 auto;animation:fadeUp .35s ease both">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+          <div>
+            <h1 style="margin:0 0 4px;font-size:23px;font-weight:700;letter-spacing:-.02em">Timesheet approvals</h1>
+            <div style="font-size:13.5px;color:var(--text3)"><span style="color:var(--amber);font-weight:600">{{ pendingCount }} pending</span> · {{ pendingHours }}h awaiting review · Week of Jun 22 – 28</div>
+          </div>
+        </div>
+
+        <sc-if value="{{ showBulk }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:14px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:11px;padding:10px 16px;margin-bottom:14px;animation:popIn .18s ease both">
+          <span style="font-size:13px;font-weight:650;color:var(--accent-text)">{{ selCountLabel }}</span>
+          <button onClick="{{ bulkApprove }}" style="padding:7px 14px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="background:var(--accent-hover)">Approve selected</button>
+          <button onClick="{{ clearSel }}" style="padding:7px 12px;border-radius:8px;border:none;background:transparent;color:var(--text2);font-size:12.5px;font-weight:600;cursor:pointer" style-hover="text-decoration:underline">Clear</button>
+        </div>
+        </sc-if>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:40px 1.6fr 1fr 90px 90px 110px 120px 190px;align-items:center;background:var(--surface2);border-bottom:1px solid var(--border);padding:0 12px">
+            <div></div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:11px 8px">EMPLOYEE</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:11px 8px">WEEK</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:11px 8px;text-align:right">HOURS</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:11px 8px;text-align:right">BILLABLE</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:11px 8px">STATUS</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:11px 8px">SUBMITTED</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:11px 8px;text-align:right">ACTIONS</div>
+          </div>
+          <sc-for list="{{ approvals }}" as="a" hint-placeholder-count="6">
+            <div style="display:grid;grid-template-columns:40px 1.6fr 1fr 90px 90px 110px 120px 190px;align-items:center;border-bottom:1px solid var(--border);padding:6px 12px;background:{{ a.rowBg }}" style-hover="background:var(--surface2)">
+              <div onClick="{{ a.onSelect }}" style="width:17px;height:17px;border-radius:5px;border:1.5px solid {{ a.checkBorder }};background:{{ a.checkBg }};display:flex;align-items:center;justify-content:center;cursor:pointer;margin-left:4px">
+                <sc-if value="{{ a.checked }}" hint-placeholder-val="{{ false }}"><svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round"><path d="M2.8 8.6l3.2 3.2 7.2-8"></path></svg></sc-if>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:6px 8px;min-width:0">
+                <div style="width:30px;height:30px;border-radius:99px;background:{{ a.avBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">{{ a.initials }}</div>
+                <div style="min-width:0">
+                  <div style="font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.name }}</div>
+                  <div style="font-size:11.5px;color:var(--text3)">{{ a.dept }}</div>
+                </div>
+              </div>
+              <div style="font-size:13px;color:var(--text2);padding:0 8px;font-variant-numeric:tabular-nums">{{ a.week }}</div>
+              <div style="padding:0 8px;text-align:right">
+                <div style="font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums">{{ a.hoursLabel }}</div>
+                <sc-if value="{{ a.hasFlag }}" hint-placeholder-val="{{ false }}"><div style="font-size:10.5px;font-weight:700;color:var(--amber)">{{ a.flag }}</div></sc-if>
+              </div>
+              <div style="font-size:13px;font-weight:600;padding:0 8px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">{{ a.billableLabel }}</div>
+              <div style="padding:0 8px"><span style="font-size:11.5px;font-weight:700;color:{{ a.statusFg }};background:{{ a.statusBg }};border-radius:99px;padding:4px 10px">{{ a.status }}</span></div>
+              <div style="font-size:12.5px;color:var(--text3);padding:0 8px">{{ a.submitted }}</div>
+              <div style="display:flex;gap:6px;justify-content:flex-end;padding:0 4px">
+                <sc-if value="{{ a.isPending }}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{ a.onApprove }}" style="padding:6px 12px;border-radius:7px;border:none;background:var(--green-soft);color:var(--green);font-size:12px;font-weight:700;cursor:pointer" style-hover="filter:brightness(.95)">Approve</button>
+                  <button onClick="{{ a.onReject }}" style="padding:6px 12px;border-radius:7px;border:none;background:var(--red-soft);color:var(--red);font-size:12px;font-weight:700;cursor:pointer" style-hover="filter:brightness(.95)">Reject</button>
+                </sc-if>
+                <button style="padding:6px 10px;border-radius:7px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer" style-hover="background:var(--surface2)">View</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- HISTORY -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px">
+          <div style="font-size:14.5px;font-weight:650;margin-bottom:16px">Approval history · audit trail</div>
+          <div style="display:flex;flex-direction:column">
+            <div style="display:flex;gap:14px">
+              <div style="display:flex;flex-direction:column;align-items:center"><div style="width:10px;height:10px;border-radius:99px;background:var(--green);margin-top:4px"></div><div style="width:2px;flex:1;background:var(--border)"></div></div>
+              <div style="padding-bottom:18px"><div style="font-size:13px"><strong>You approved</strong> Lena Fischer's timesheet — Jun 22 – 28 · 40h</div><div style="font-size:11.5px;color:var(--text3);margin-top:2px">Today, 8:47 AM</div></div>
+            </div>
+            <div style="display:flex;gap:14px">
+              <div style="display:flex;flex-direction:column;align-items:center"><div style="width:10px;height:10px;border-radius:99px;background:var(--red);margin-top:4px"></div><div style="width:2px;flex:1;background:var(--border)"></div></div>
+              <div style="padding-bottom:18px"><div style="font-size:13px"><strong>You rejected</strong> Tom Okafor's timesheet — Jun 15 – 21 · "5h missing on Thursday, please complete and resubmit."</div><div style="font-size:11.5px;color:var(--text3);margin-top:2px">Yesterday, 4:12 PM</div></div>
+            </div>
+            <div style="display:flex;gap:14px">
+              <div style="display:flex;flex-direction:column;align-items:center"><div style="width:10px;height:10px;border-radius:99px;background:var(--amber);margin-top:4px"></div><div style="width:2px;flex:1;background:var(--border)"></div></div>
+              <div style="padding-bottom:18px"><div style="font-size:13px"><strong>System escalation</strong> — Tom Okafor's missing timesheet escalated to Department Manager</div><div style="font-size:11.5px;color:var(--text3);margin-top:2px">Yesterday, 9:00 AM · Rule: Friday 6 PM deadline</div></div>
+            </div>
+            <div style="display:flex;gap:14px">
+              <div style="display:flex;flex-direction:column;align-items:center"><div style="width:10px;height:10px;border-radius:99px;background:var(--border2);margin-top:4px"></div></div>
+              <div><div style="font-size:13px"><strong>Reminder sent</strong> to 3 employees with unsubmitted timesheets</div><div style="font-size:11.5px;color:var(--text3);margin-top:2px">Fri Jun 26, 6:00 PM · Automatic</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ===== MANAGER DASHBOARD ===== -->
+      <sc-if value="{{ show_manager }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Manager Dashboard" style="padding:26px 28px 40px;max-width:1240px;margin:0 auto;animation:fadeUp .35s ease both">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap">
+          <div>
+            <h1 style="margin:0 0 4px;font-size:23px;font-weight:700;letter-spacing:-.02em">Team overview</h1>
+            <div style="font-size:13.5px;color:var(--text3)">Delivery · 8 people · Week 27</div>
+          </div>
+          <button onClick="{{ go_approvals }}" style="display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer" style-hover="background:var(--accent-hover)">Review approvals ({{ pendingCount }})</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px">
+          <div onClick="{{ go_approvals }}" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px;cursor:pointer" style-hover="border-color:var(--accent)">
+            <div style="font-size:12.5px;font-weight:600;color:var(--text3);margin-bottom:10px">Pending approvals</div>
+            <div style="font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--amber)">{{ pendingCount }}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:10px">{{ pendingHours }}h awaiting review</div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px">
+            <div style="font-size:12.5px;font-weight:600;color:var(--text3);margin-bottom:10px">Missing timesheets</div>
+            <div style="font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--red)">3</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:10px">1 escalated · 2 due today</div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px">
+            <div style="font-size:12.5px;font-weight:600;color:var(--text3);margin-bottom:10px">Team utilization</div>
+            <div style="font-size:26px;font-weight:700;font-variant-numeric:tabular-nums">87%</div>
+            <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px">▲ 3% vs last week</div>
+          </div>
+          <div onClick="{{ go_projects }}" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px;cursor:pointer" style-hover="border-color:var(--accent)">
+            <div style="font-size:12.5px;font-weight:600;color:var(--text3);margin-bottom:10px">Projects at risk</div>
+            <div style="font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--red)">3</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:10px">1 over budget · 1 delayed · 1 near estimate</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <!-- UTILIZATION -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+                <div style="font-size:14.5px;font-weight:650">Team utilization · this week</div>
+                <div style="display:flex;gap:14px;font-size:11.5px;color:var(--text3)">
+                  <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:3px;background:var(--green)"></span>80–100%</span>
+                  <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:3px;background:var(--amber)"></span>60–80%</span>
+                  <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:3px;background:var(--red)"></span>&lt;60%</span>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="display:grid;grid-template-columns:150px 1fr 46px;align-items:center;gap:12px"><div style="font-size:13px;font-weight:600">Sarah Chen</div><div style="height:9px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="width:98%;height:100%;background:var(--green);border-radius:99px"></div></div><div style="font-size:12.5px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums">98%</div></div>
+                <div style="display:grid;grid-template-columns:150px 1fr 46px;align-items:center;gap:12px"><div style="font-size:13px;font-weight:600">Priya Sharma</div><div style="height:9px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="width:95%;height:100%;background:var(--green);border-radius:99px"></div></div><div style="font-size:12.5px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums">95%</div></div>
+                <div style="display:grid;grid-template-columns:150px 1fr 46px;align-items:center;gap:12px"><div style="font-size:13px;font-weight:600">Alex Morgan</div><div style="height:9px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="width:92%;height:100%;background:var(--green);border-radius:99px"></div></div><div style="font-size:12.5px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums">92%</div></div>
+                <div style="display:grid;grid-template-columns:150px 1fr 46px;align-items:center;gap:12px"><div style="font-size:13px;font-weight:600">Lena Fischer</div><div style="height:9px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="width:88%;height:100%;background:var(--green);border-radius:99px"></div></div><div style="font-size:12.5px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums">88%</div></div>
+                <div style="display:grid;grid-template-columns:150px 1fr 46px;align-items:center;gap:12px"><div style="font-size:13px;font-weight:600">Diego Ruiz</div><div style="height:9px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="width:76%;height:100%;background:var(--amber);border-radius:99px"></div></div><div style="font-size:12.5px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums">76%</div></div>
+                <div style="display:grid;grid-template-columns:150px 1fr 46px;align-items:center;gap:12px"><div style="font-size:13px;font-weight:600">Marcus Webb</div><div style="height:9px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="width:71%;height:100%;background:var(--amber);border-radius:99px"></div></div><div style="font-size:12.5px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums">71%</div></div>
+                <div style="display:grid;grid-template-columns:150px 1fr 46px;align-items:center;gap:12px"><div style="font-size:13px;font-weight:600">Tom Okafor</div><div style="height:9px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="width:54%;height:100%;background:var(--red);border-radius:99px"></div></div><div style="font-size:12.5px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;color:var(--red)">54%</div></div>
+              </div>
+            </div>
+
+            <!-- PROJECT HEALTH MINI -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                <div style="font-size:14.5px;font-weight:650">Project health</div>
+                <div onClick="{{ go_projects }}" style="font-size:12.5px;font-weight:600;color:var(--accent-text);cursor:pointer" style-hover="text-decoration:underline">All projects →</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 110px;padding:8px;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);border-bottom:1px solid var(--border)"><div>PROJECT</div><div style="text-align:right">EST / ACTUAL</div><div style="text-align:right">BUDGET USED</div><div style="text-align:right">STATUS</div></div>
+              <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 110px;align-items:center;padding:11px 8px;border-bottom:1px solid var(--border);font-size:13px"><div style="display:flex;align-items:center;gap:8px;font-weight:600"><span style="width:8px;height:8px;border-radius:3px;background:#B54708"></span>Atlas Mobile Banking</div><div style="text-align:right;font-variant-numeric:tabular-nums;color:var(--red);font-weight:600">900h / 1010h</div><div style="text-align:right;font-variant-numeric:tabular-nums;color:var(--red);font-weight:600">109%</div><div style="text-align:right"><span style="font-size:11px;font-weight:700;color:var(--red);background:var(--red-soft);border-radius:99px;padding:3px 9px">Over budget</span></div></div>
+              <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 110px;align-items:center;padding:11px 8px;border-bottom:1px solid var(--border);font-size:13px"><div style="display:flex;align-items:center;gap:8px;font-weight:600"><span style="width:8px;height:8px;border-radius:3px;background:#C11574"></span>Zephyr Portal Redesign</div><div style="text-align:right;font-variant-numeric:tabular-nums;color:var(--amber);font-weight:600">480h / 495h</div><div style="text-align:right;font-variant-numeric:tabular-nums">95%</div><div style="text-align:right"><span style="font-size:11px;font-weight:700;color:var(--red);background:var(--red-soft);border-radius:99px;padding:3px 9px">Delayed</span></div></div>
+              <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 110px;align-items:center;padding:11px 8px;border-bottom:1px solid var(--border);font-size:13px"><div style="display:flex;align-items:center;gap:8px;font-weight:600"><span style="width:8px;height:8px;border-radius:3px;background:#0E9384"></span>Helios ERP Rollout</div><div style="text-align:right;font-variant-numeric:tabular-nums;color:var(--amber);font-weight:600">2400h / 2310h</div><div style="text-align:right;font-variant-numeric:tabular-nums">95%</div><div style="text-align:right"><span style="font-size:11px;font-weight:700;color:var(--amber);background:var(--amber-soft);border-radius:99px;padding:3px 9px">At risk</span></div></div>
+              <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 110px;align-items:center;padding:11px 8px;font-size:13px"><div style="display:flex;align-items:center;gap:8px;font-weight:600"><span style="width:8px;height:8px;border-radius:3px;background:#4757E6"></span>Aurora Cloud Migration</div><div style="text-align:right;font-variant-numeric:tabular-nums">1200h / 860h</div><div style="text-align:right;font-variant-numeric:tabular-nums">68%</div><div style="text-align:right"><span style="font-size:11px;font-weight:700;color:var(--green);background:var(--green-soft);border-radius:99px;padding:3px 9px">On track</span></div></div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <!-- MISSING -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px">
+              <div style="font-size:14.5px;font-weight:650;margin-bottom:12px">Missing timesheets</div>
+              <sc-for list="{{ missing }}" as="m" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+                  <div style="width:30px;height:30px;border-radius:99px;background:{{ m.bg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">{{ m.initials }}</div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:13px;font-weight:600">{{ m.name }}</div>
+                    <div style="font-size:11.5px;color:{{ m.sev }};font-weight:600">{{ m.dept }}</div>
+                  </div>
+                  <button onClick="{{ m.onRemind }}" style="padding:6px 11px;border-radius:7px;border:1px solid var(--border2);background:var(--surface);font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);white-space:nowrap" style-hover="background:var(--surface2)">Remind</button>
+                </div>
+              </sc-for>
+              <div style="font-size:11.5px;color:var(--text3);padding-top:10px">Auto-reminder fires Friday 6 PM, then escalates to PM → Dept Manager.</div>
+            </div>
+
+            <!-- TOP PERFORMERS -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px">
+              <div style="font-size:14.5px;font-weight:650;margin-bottom:12px">Top performers · June</div>
+              <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;font-weight:700;color:var(--text3);width:16px">1</span><div style="width:28px;height:28px;border-radius:99px;background:#4757E6;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700">SC</div><div style="flex:1;font-size:13px;font-weight:600">Sarah Chen</div><span style="font-size:12.5px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums">98% util</span></div>
+              <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;font-weight:700;color:var(--text3);width:16px">2</span><div style="width:28px;height:28px;border-radius:99px;background:#B54708;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700">PS</div><div style="flex:1;font-size:13px;font-weight:600">Priya Sharma</div><span style="font-size:12.5px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums">95% util</span></div>
+              <div style="display:flex;align-items:center;gap:10px;padding:9px 0"><span style="font-size:12px;font-weight:700;color:var(--text3);width:16px">3</span><div style="width:28px;height:28px;border-radius:99px;background:#475467;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700">AM</div><div style="flex:1;font-size:13px;font-weight:600">Alex Morgan</div><span style="font-size:12.5px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums">92% util</span></div>
+            </div>
+
+            <!-- RECENT ACTIVITY -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px">
+              <div style="font-size:14.5px;font-weight:650;margin-bottom:12px">Recent activity</div>
+              <div style="display:flex;flex-direction:column;gap:12px;font-size:12.5px;color:var(--text2)">
+                <div><strong style="color:var(--text)">Priya Sharma</strong> submitted 42h — flagged +2h overtime <div style="font-size:11px;color:var(--text3);margin-top:2px">18 min ago</div></div>
+                <div><strong style="color:var(--text)">Atlas Mobile Banking</strong> crossed 100% of estimated hours <div style="font-size:11px;color:var(--text3);margin-top:2px">25 min ago</div></div>
+                <div><strong style="color:var(--text)">Diego Ruiz</strong> submitted timesheet for Jun 22 – 28 <div style="font-size:11px;color:var(--text3);margin-top:2px">2 h ago</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ===== PROJECTS ===== -->
+      <sc-if value="{{ show_projects }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Projects" style="padding:26px 28px 40px;max-width:1240px;margin:0 auto;animation:fadeUp .35s ease both">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap">
+          <div>
+            <h1 style="margin:0 0 4px;font-size:23px;font-weight:700;letter-spacing:-.02em">Projects</h1>
+            <div style="font-size:13.5px;color:var(--text3)">6 active engagements · 4 clients</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <sc-for list="{{ projChips }}" as="ch" hint-placeholder-count="4">
+              <span onClick="{{ ch.onClick }}" style="font-size:12.5px;font-weight:600;color:{{ ch.fg }};background:{{ ch.bg }};border:1px solid {{ ch.border }};border-radius:99px;padding:7px 14px;cursor:pointer;user-select:none;transition:all .15s">{{ ch.label }}</span>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px">
+          <sc-for list="{{ projCards }}" as="p" hint-placeholder-count="6">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:14px;transition:box-shadow .2s" style-hover="box-shadow:var(--shadow-lg)">
+              <div style="display:flex;align-items:flex-start;gap:11px">
+                <span style="width:10px;height:10px;border-radius:3px;background:{{ p.color }};margin-top:5px;flex-shrink:0"></span>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:15px;font-weight:650;letter-spacing:-.01em">{{ p.name }}</div>
+                  <div style="font-size:12.5px;color:var(--text3)">{{ p.client }} · due {{ p.due }}</div>
+                </div>
+                <span style="font-size:11px;font-weight:700;color:{{ p.healthFg }};background:{{ p.healthBg }};border-radius:99px;padding:4px 10px;white-space:nowrap">{{ p.healthLabel }}</span>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3);margin-bottom:6px"><span>Completion</span><span style="font-weight:700;color:var(--text);font-variant-numeric:tabular-nums">{{ p.compLabel }}</span></div>
+                <div style="height:7px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="width:{{ p.compW }};height:100%;border-radius:99px;background:{{ p.color }}"></div></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+                <div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 12px"><div style="font-size:10.5px;font-weight:700;color:var(--text3);letter-spacing:.05em;margin-bottom:3px">ESTIMATED</div><div style="font-size:14px;font-weight:700;font-variant-numeric:tabular-nums">{{ p.estLabel }}</div></div>
+                <div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 12px"><div style="font-size:10.5px;font-weight:700;color:var(--text3);letter-spacing:.05em;margin-bottom:3px">ACTUAL</div><div style="font-size:14px;font-weight:700;font-variant-numeric:tabular-nums">{{ p.actLabel }}</div></div>
+                <div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 12px"><div style="font-size:10.5px;font-weight:700;color:var(--text3);letter-spacing:.05em;margin-bottom:3px">REMAINING</div><div style="font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;color:{{ p.remColor }}">{{ p.remLabel }}</div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3);margin-bottom:6px"><span>Budget · {{ p.spentLabel }} of {{ p.budgetLabel }}</span><span style="font-weight:700;color:{{ p.budgetColor }};font-variant-numeric:tabular-nums">{{ p.budgetPctLabel }}</span></div>
+                <div style="height:7px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="width:{{ p.budgetPct }};height:100%;border-radius:99px;background:{{ p.budgetColor }}"></div></div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto">
+                <div style="display:flex">
+                  <sc-for list="{{ p.team }}" as="tm" hint-placeholder-count="3">
+                    <div style="width:26px;height:26px;border-radius:99px;background:{{ tm.bg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;border:2px solid var(--surface);margin-left:-6px">{{ tm.init }}</div>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ p.showWarn }}" hint-placeholder-val="{{ false }}">
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--red)">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 5.5V9M8 11.2v.1M6.9 2.2L1.6 11.4a1.3 1.3 0 0 0 1.1 2h10.6a1.3 1.3 0 0 0 1.1-2L9.1 2.2a1.3 1.3 0 0 0-2.2 0z"></path></svg>
+                    {{ p.warn }}
+                  </span>
+                </sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ===== REPORTS ===== -->
+      <sc-if value="{{ show_reports }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Reports" style="padding:26px 28px 40px;max-width:1240px;margin:0 auto;animation:fadeUp .35s ease both">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap">
+          <div>
+            <h1 style="margin:0 0 4px;font-size:23px;font-weight:700;letter-spacing:-.02em">Reports</h1>
+            <div style="font-size:13.5px;color:var(--text3)">Q2 2026 · Apr 1 – Jun 30 · All departments</div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button onClick="{{ exportPdf }}" style="padding:9px 13px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;color:var(--text2)" style-hover="background:var(--surface2)">PDF</button>
+            <button onClick="{{ exportXls }}" style="padding:9px 13px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;color:var(--text2)" style-hover="background:var(--surface2)">Excel</button>
+            <button onClick="{{ exportXls }}" style="padding:9px 13px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;color:var(--text2)" style-hover="background:var(--surface2)">CSV</button>
+          </div>
+        </div>
+
+        <!-- FILTER BAR -->
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+          <select style="padding:8px 12px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;color:var(--text2)"><option>Q2 2026</option><option>Q1 2026</option><option>Last 12 months</option></select>
+          <select style="padding:8px 12px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;color:var(--text2)"><option>All projects</option><option>Aurora Cloud Migration</option><option>Helios ERP Rollout</option><option>Atlas Mobile Banking</option></select>
+          <select style="padding:8px 12px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;color:var(--text2)"><option>All clients</option><option>Nexbank</option><option>Vertex Retail</option><option>MedCore Health</option><option>GreenGrid Energy</option></select>
+          <select style="padding:8px 12px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;color:var(--text2)"><option>All departments</option><option>Engineering</option><option>Data</option><option>Design</option></select>
+        </div>
+
+        <!-- KPI -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px"><div style="font-size:12.5px;font-weight:600;color:var(--text3);margin-bottom:10px">Billable revenue</div><div style="font-size:26px;font-weight:700;font-variant-numeric:tabular-nums">$1.42M</div><div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px">▲ 9.2% vs Q1</div></div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px"><div style="font-size:12.5px;font-weight:600;color:var(--text3);margin-bottom:10px">Delivery cost</div><div style="font-size:26px;font-weight:700;font-variant-numeric:tabular-nums">$918k</div><div style="font-size:12px;color:var(--amber);font-weight:600;margin-top:10px">▲ 6.1% vs Q1</div></div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px"><div style="font-size:12.5px;font-weight:600;color:var(--text3);margin-bottom:10px">Profit margin</div><div style="font-size:26px;font-weight:700;font-variant-numeric:tabular-nums">35.4%</div><div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px">▲ 1.8 pts vs Q1</div></div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px"><div style="font-size:12.5px;font-weight:600;color:var(--text3);margin-bottom:10px">Avg utilization</div><div style="font-size:26px;font-weight:700;font-variant-numeric:tabular-nums">84%</div><div style="font-size:12px;color:var(--text3);font-weight:600;margin-top:10px">Target 85%</div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.7fr 1fr;gap:14px;margin-bottom:14px;align-items:start">
+          <!-- TREND -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+              <div style="font-size:14.5px;font-weight:650">Logged hours trend · 12 weeks</div>
+              <div style="font-size:12px;color:var(--text3)">All teams</div>
+            </div>
+            <svg viewBox="0 0 660 220" style="width:100%;height:auto;display:block">
+              <line x1="20" y1="40" x2="640" y2="40" stroke="var(--border)" stroke-width="1"></line>
+              <line x1="20" y1="93" x2="640" y2="93" stroke="var(--border)" stroke-width="1"></line>
+              <line x1="20" y1="146" x2="640" y2="146" stroke="var(--border)" stroke-width="1"></line>
+              <line x1="20" y1="199" x2="640" y2="199" stroke="var(--border)" stroke-width="1"></line>
+              <path d="M20 150 L76 124 L132 134 L188 98 L244 112 L300 86 L356 94 L412 72 L468 88 L524 62 L580 76 L640 52 L640 199 L20 199 Z" fill="var(--accent)" fill-opacity="0.09"></path>
+              <path d="M20 150 L76 124 L132 134 L188 98 L244 112 L300 86 L356 94 L412 72 L468 88 L524 62 L580 76 L640 52" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></path>
+              <circle cx="640" cy="52" r="4.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"></circle>
+              <text x="20" y="216" font-size="10" fill="var(--text3)" font-family="Instrument Sans">W16</text>
+              <text x="320" y="216" font-size="10" fill="var(--text3)" font-family="Instrument Sans" text-anchor="middle">W21</text>
+              <text x="640" y="216" font-size="10" fill="var(--text3)" font-family="Instrument Sans" text-anchor="end">W27</text>
+            </svg>
+          </div>
+
+          <!-- BILLABLE DONUT -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;align-items:center">
+            <div style="font-size:14.5px;font-weight:650;align-self:flex-start;margin-bottom:14px">Billable split</div>
+            <div style="position:relative;width:150px;height:150px">
+              <svg width="150" height="150" viewBox="0 0 150 150">
+                <circle cx="75" cy="75" r="60" fill="none" stroke="var(--surface2)" stroke-width="15"></circle>
+                <circle cx="75" cy="75" r="60" fill="none" stroke="var(--accent)" stroke-width="15" stroke-linecap="round" stroke-dasharray="294 377" transform="rotate(-90 75 75)"></circle>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums">78%</div>
+                <div style="font-size:11px;color:var(--text3)">billable</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;width:100%;margin-top:18px;font-size:12.5px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:3px;background:var(--accent)"></span><span style="color:var(--text2)">Billable</span><span style="margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums">6,410h</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:3px;background:var(--border2)"></span><span style="color:var(--text2)">Non-billable</span><span style="margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums">1,808h</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
+          <!-- EST VS ACTUAL -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+              <div style="font-size:14.5px;font-weight:650">Estimated vs actual hours</div>
+              <div style="display:flex;gap:12px;font-size:11.5px;color:var(--text3)">
+                <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:3px;background:var(--border2)"></span>Est.</span>
+                <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:3px;background:var(--accent)"></span>Actual</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px"><span style="font-weight:600">Aurora Cloud Migration</span><span style="color:var(--text3);font-variant-numeric:tabular-nums">860 / 1200h</span></div><div style="height:8px;border-radius:99px;background:var(--border);overflow:hidden;opacity:.6"></div><div style="height:8px;border-radius:99px;background:var(--surface2);overflow:hidden;margin-top:-8px"><div style="width:72%;height:100%;border-radius:99px;background:var(--accent)"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px"><span style="font-weight:600">Helios ERP Rollout</span><span style="color:var(--amber);font-weight:600;font-variant-numeric:tabular-nums">2310 / 2400h</span></div><div style="height:8px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="width:96%;height:100%;border-radius:99px;background:var(--amber)"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px"><span style="font-weight:600">Atlas Mobile Banking</span><span style="color:var(--red);font-weight:700;font-variant-numeric:tabular-nums">1010 / 900h · 112%</span></div><div style="height:8px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="width:100%;height:100%;border-radius:99px;background:var(--red)"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px"><span style="font-weight:600">Orion Data Platform</span><span style="color:var(--text3);font-variant-numeric:tabular-nums">610 / 1600h</span></div><div style="height:8px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="width:38%;height:100%;border-radius:99px;background:var(--accent)"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px"><span style="font-weight:600">Zephyr Portal Redesign</span><span style="color:var(--amber);font-weight:600;font-variant-numeric:tabular-nums">495 / 480h · 103%</span></div><div style="height:8px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="width:100%;height:100%;border-radius:99px;background:var(--amber)"></div></div></div>
+            </div>
+          </div>
+
+          <!-- CLIENT BILLING -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px">
+            <div style="font-size:14.5px;font-weight:650;margin-bottom:12px">Client billing · Q2</div>
+            <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;padding:8px;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);border-bottom:1px solid var(--border)"><div>CLIENT</div><div style="text-align:right">HOURS</div><div style="text-align:right">BILLED</div><div style="text-align:right">MARGIN</div></div>
+            <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;align-items:center;padding:12px 8px;border-bottom:1px solid var(--border);font-size:13px"><div style="font-weight:600">Nexbank</div><div style="text-align:right;font-variant-numeric:tabular-nums">2,840h</div><div style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">$512k</div><div style="text-align:right;font-weight:600;color:var(--green);font-variant-numeric:tabular-nums">38%</div></div>
+            <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;align-items:center;padding:12px 8px;border-bottom:1px solid var(--border);font-size:13px"><div style="font-weight:600">Vertex Retail</div><div style="text-align:right;font-variant-numeric:tabular-nums">2,120h</div><div style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">$398k</div><div style="text-align:right;font-weight:600;color:var(--green);font-variant-numeric:tabular-nums">34%</div></div>
+            <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;align-items:center;padding:12px 8px;border-bottom:1px solid var(--border);font-size:13px"><div style="font-weight:600">MedCore Health</div><div style="text-align:right;font-variant-numeric:tabular-nums">980h</div><div style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">$287k</div><div style="text-align:right;font-weight:600;color:var(--green);font-variant-numeric:tabular-nums">41%</div></div>
+            <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;align-items:center;padding:12px 8px;font-size:13px"><div style="font-weight:600">GreenGrid Energy</div><div style="text-align:right;font-variant-numeric:tabular-nums">470h</div><div style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">$225k</div><div style="text-align:right;font-weight:600;color:var(--amber);font-variant-numeric:tabular-nums">24%</div></div>
+            <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;align-items:center;padding:12px 8px;background:var(--surface2);border-radius:8px;margin-top:6px;font-size:13px"><div style="font-weight:700">Total</div><div style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">6,410h</div><div style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">$1.42M</div><div style="text-align:right;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums">35.4%</div></div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <div id="more-screens" style="display:none"></div>
+    </main>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== TWEAKS PANEL ===== -->
+<sc-if value="{{ tweaksOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;top:64px;right:24px;width:280px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-lg);z-index:90;animation:popIn .18s ease both;padding:18px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div style="font-size:14px;font-weight:650">Appearance</div>
+    <div onClick="{{ closeTweaks }}" style="width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3)" style-hover="background:var(--surface2);color:var(--text)">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+    </div>
+  </div>
+  <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);margin-bottom:9px">ACCENT</div>
+  <div style="display:flex;gap:12px;margin-bottom:18px">
+    <sc-for list="{{ accentOpts }}" as="ac" hint-placeholder-count="4">
+      <div onClick="{{ ac.onClick }}" title="{{ ac.label }}" style="width:28px;height:28px;border-radius:99px;background:{{ ac.c }};cursor:pointer;box-shadow:{{ ac.ring }};transition:box-shadow .15s"></div>
+    </sc-for>
+  </div>
+  <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);margin-bottom:9px">SIDEBAR TONE</div>
+  <div style="display:flex;border:1px solid var(--border2);border-radius:9px;padding:3px;gap:3px;margin-bottom:18px">
+    <sc-for list="{{ toneOpts }}" as="to" hint-placeholder-count="2">
+      <div onClick="{{ to.onClick }}" style="flex:1;text-align:center;font-size:12.5px;font-weight:600;padding:7px 0;border-radius:7px;cursor:pointer;background:{{ to.bg }};color:{{ to.fg }};transition:all .15s">{{ to.label }}</div>
+    </sc-for>
+  </div>
+  <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text3);margin-bottom:9px">DENSITY</div>
+  <div style="display:flex;border:1px solid var(--border2);border-radius:9px;padding:3px;gap:3px">
+    <sc-for list="{{ densityOpts }}" as="de" hint-placeholder-count="2">
+      <div onClick="{{ de.onClick }}" style="flex:1;text-align:center;font-size:12.5px;font-weight:600;padding:7px 0;border-radius:7px;cursor:pointer;background:{{ de.bg }};color:{{ de.fg }};transition:all .15s">{{ de.label }}</div>
+    </sc-for>
+  </div>
+  <div style="font-size:11.5px;color:var(--text3);margin-top:14px;line-height:1.5">Ink pairs the sidebar with the login hero. Compact fits ~15% more rows on screen.</div>
+</div>
+</sc-if>
+
+<!-- ===== COMMAND PALETTE ===== -->
+<sc-if value="{{ paletteOpen }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closePalette }}" style="position:fixed;inset:0;background:rgba(10,13,20,.42);backdrop-filter:blur(2px);z-index:100;display:flex;justify-content:center;padding-top:14vh">
+  <div onClick="{{ stopProp }}" style="width:560px;max-width:92vw;height:fit-content;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-lg);overflow:hidden;animation:popIn .16s ease both">
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5L14 14"></path></svg>
+      <input autoFocus value="{{ paletteQuery }}" onChange="{{ onPaletteInput }}" placeholder="Search actions, pages, projects…" style="flex:1;border:none;background:transparent;font-size:14.5px;outline:none">
+      <span style="font-size:10.5px;border:1px solid var(--border);border-radius:5px;padding:2px 6px;color:var(--text3)">ESC</span>
+    </div>
+    <div style="max-height:320px;overflow-y:auto;padding:6px">
+      <sc-for list="{{ paletteItems }}" as="pi" hint-placeholder-count="5">
+        <div onClick="{{ pi.onClick }}" style="display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:8px;cursor:pointer;font-size:13.5px" style-hover="background:var(--accent-soft)">
+          <span style="color:var(--text3);display:flex">{{ pi.glyph }}</span>
+          <span style="font-weight:550">{{ pi.label }}</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--text3)">{{ pi.hint }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== TOAST ===== -->
+<sc-if value="{{ showToast }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:120;display:flex;align-items:center;gap:10px;background:var(--text);color:var(--bg);padding:11px 18px;border-radius:10px;box-shadow:var(--shadow-lg);font-size:13.5px;font-weight:600;animation:toastIn .22s ease both">
+  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2.5 8.5l3.5 3.5 7.5-8"></path></svg>
+  {{ toastMsg }}
+</div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;accent&quot;: {&quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#4757E6&quot;, &quot;options&quot;: [&quot;#4757E6&quot;, &quot;#0E9384&quot;, &quot;#B4441F&quot;, &quot;#175CD3&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Brand&quot;},
+  &quot;defaultTheme&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;light&quot;, &quot;options&quot;: [&quot;light&quot;, &quot;dark&quot;], &quot;tsType&quot;: &quot;'light' | 'dark'&quot;, &quot;section&quot;: &quot;Appearance&quot;},
+  &quot;skipLogin&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Demo&quot;}
+}">
+class Component extends DCLogic {
+  projects = [
+    {name:'Aurora Cloud Migration', client:'Nexbank', color:'#4757E6', est:1200, act:860, budget:180000, spent:122000, due:'Aug 14', health:'On track', completion:72, team:['SC','MW','AM']},
+    {name:'Helios ERP Rollout', client:'Vertex Retail', color:'#0E9384', est:2400, act:2310, budget:310000, spent:296000, due:'Jul 31', health:'At risk', completion:88, warn:'96% of estimated hours consumed', team:['PS','LF','TO','AM']},
+    {name:'Atlas Mobile Banking', client:'Nexbank', color:'#B54708', est:900, act:1010, budget:140000, spent:152000, due:'Jul 10', health:'Over budget', completion:94, warn:'Over budget · 110h over estimate', team:['MW','DR']},
+    {name:'Orion Data Platform', client:'MedCore Health', color:'#7839EE', est:1600, act:610, budget:220000, spent:78000, due:'Oct 2', health:'On track', completion:38, team:['AM','PS','TO']},
+    {name:'Zephyr Portal Redesign', client:'GreenGrid Energy', color:'#C11574', est:480, act:495, budget:64000, spent:61000, due:'Jul 8', health:'Delayed', completion:92, warn:'Delayed · due in 5 days', team:['DR','LF']},
+    {name:'Titan DevOps Enablement', client:'Vertex Retail', color:'#175CD3', est:700, act:698, budget:95000, spent:93000, due:'Jun 20', health:'Completed', completion:100, team:['SC','TO']},
+    {name:'Internal · Training & Ops', client:'eTech', color:'#667085', est:0, act:0, budget:0, spent:0, due:'—', health:'On track', completion:0, team:[]}
+  ];
+  avColors = {SC:'#4757E6',MW:'#0E9384',PS:'#B54708',TO:'#175CD3',LF:'#C11574',DR:'#7839EE',AM:'#475467',AP:'#0E9384'};
+  weekLabels = ['Jun 15 – 21, 2026','Jun 22 – 28, 2026','Jun 29 – Jul 5, 2026','Jul 6 – 12, 2026'];
+  dayLabels = ['Monday, Jun 29','Tuesday, Jun 30','Wednesday, Jul 1','Thursday, Jul 2','Friday, Jul 3','Saturday, Jul 4','Sunday, Jul 5'];
+
+  state = {
+    screen:'login', theme:'light',
+    notifOpen:false, unread:4,
+    paletteOpen:false, paletteQuery:'',
+    toast:'',
+    activeDay:4,
+    entriesByDay:{
+      0:[{p:0,task:'API integration',desc:'Payment gateway endpoints + error handling',start:'09:00',end:'13:30',brk:'0:30',billable:true,hours:4},
+         {p:3,task:'Architecture',desc:'Entity model draft for claims domain',start:'13:30',end:'16:00',brk:'',billable:true,hours:2.5},
+         {p:1,task:'Support',desc:'Helios ticket triage — priority queue',start:'16:00',end:'17:30',brk:'',billable:true,hours:1.5}],
+      1:[{p:0,task:'Development',desc:'Migration scripts for account service',start:'09:00',end:'12:30',brk:'',billable:true,hours:3.5},
+         {p:3,task:'Workshops',desc:'Data mapping workshop with MedCore',start:'13:00',end:'16:00',brk:'',billable:true,hours:3},
+         {p:6,task:'Training',desc:'Security awareness module',start:'16:00',end:'16:30',brk:'',billable:false,hours:0.5},
+         {p:1,task:'Support',desc:'Regression check on invoice batch',start:'16:30',end:'17:30',brk:'',billable:true,hours:1}],
+      2:[{p:0,task:'Development',desc:'Auth flow refactor + code review',start:'09:00',end:'13:00',brk:'',billable:true,hours:4},
+         {p:3,task:'Architecture',desc:'Pipeline design doc v2',start:'13:30',end:'15:30',brk:'',billable:true,hours:2},
+         {p:1,task:'Support',desc:'Hotfix validation with Vertex team',start:'15:30',end:'17:30',brk:'',billable:true,hours:2}],
+      3:[{p:0,task:'Development',desc:'Payment gateway sandbox testing',start:'09:00',end:'12:30',brk:'',billable:true,hours:3.5},
+         {p:3,task:'Data model review',desc:'Entity mapping session notes',start:'13:00',end:'15:30',brk:'',billable:true,hours:2.5},
+         {p:1,task:'Support',desc:'Monthly close support window',start:'15:30',end:'17:00',brk:'',billable:true,hours:1.5},
+         {p:6,task:'Team sync',desc:'Chapter meeting',start:'17:00',end:'17:30',brk:'',billable:false,hours:0.5}],
+      4:[{p:0,task:'API integration',desc:'Payment gateway endpoints + error handling',start:'09:00',end:'12:30',brk:'0:30',billable:true,hours:3},
+         {p:0,task:'Sprint planning',desc:'Sprint 14 grooming with Nexbank team',start:'13:00',end:'14:00',brk:'',billable:true,hours:1},
+         {p:3,task:'Data model review',desc:'Entity mapping workshop follow-up',start:'14:00',end:'16:30',brk:'',billable:true,hours:2.5}],
+      5:[], 6:[]
+    },
+    tasks:[
+      {id:1,label:'Finalize payment API error states',p:0,done:false,due:'Today',urgent:true},
+      {id:2,label:'Prepare demo for Nexbank steering committee',p:0,done:false,due:'Mon',urgent:false},
+      {id:3,label:'Review Orion entity mapping document',p:3,done:false,due:'Jul 8',urgent:false},
+      {id:4,label:'Update Helios support runbook',p:1,done:false,due:'Jul 11',urgent:false},
+      {id:5,label:'Submit June expense report',p:6,done:true,due:'Done',urgent:false}
+    ],
+    weekRows:[
+      {p:0,task:'Development',hours:[4,3.5,4,3.5,3.5,'','']},
+      {p:3,task:'Architecture',hours:[2.5,3,2,2.5,2,'','']},
+      {p:1,task:'Support',hours:[1.5,1,2,1.5,1,'','']},
+      {p:6,task:'Training & internal',hours:['',0.5,'',0.5,'','','']}
+    ],
+    weekStatus:'Draft', weekIdx:2,
+    approvals:[
+      {id:'a1',name:'Sarah Chen',initials:'SC',dept:'Engineering',week:'Jun 22 – 28',hours:40,billable:92,status:'Pending',submitted:'Mon 9:12 AM',flag:''},
+      {id:'a2',name:'Marcus Webb',initials:'MW',dept:'Engineering',week:'Jun 22 – 28',hours:38.5,billable:84,status:'Pending',submitted:'Mon 11:40 AM',flag:'1.5h under'},
+      {id:'a3',name:'Priya Sharma',initials:'PS',dept:'Data',week:'Jun 22 – 28',hours:42,billable:95,status:'Pending',submitted:'Sun 8:05 PM',flag:'+2h overtime'},
+      {id:'a4',name:'Diego Ruiz',initials:'DR',dept:'Design',week:'Jun 22 – 28',hours:40,billable:76,status:'Pending',submitted:'Mon 8:30 AM',flag:''},
+      {id:'a5',name:'Lena Fischer',initials:'LF',dept:'Engineering',week:'Jun 22 – 28',hours:40,billable:88,status:'Approved',submitted:'Fri 5:55 PM',flag:''},
+      {id:'a6',name:'Tom Okafor',initials:'TO',dept:'Data',week:'Jun 15 – 21',hours:35,billable:71,status:'Rejected',submitted:'Tue 10:15 AM',flag:'5h missing'}
+    ],
+    sel:{},
+    projFilter:'All',
+    tweaksOpen:false, density:'comfortable', sideTone:'light', accentPick:''
+  };
+
+  componentDidMount(){
+    this._key = (e)=>{
+      if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); this.setState(s=>({paletteOpen:!s.paletteOpen,paletteQuery:'',notifOpen:false})); }
+      if(e.key==='Escape'){ this.setState({paletteOpen:false,notifOpen:false}); }
+    };
+    window.addEventListener('keydown',this._key);
+    const t = this.props.defaultTheme ?? 'light';
+    if(t!==this.state.theme) this.setState({theme:t});
+    document.documentElement.setAttribute('data-theme',t);
+    this.applyAccent();
+    if(this.props.skipLogin) this.setState({screen:'dashboard'});
+  }
+  componentWillUnmount(){ window.removeEventListener('keydown',this._key); }
+  componentDidUpdate(){ this.applyAccent(); }
+  applyAccent(){ document.documentElement.style.setProperty('--accent', this.state.accentPick || (this.props.accent ?? '#4757E6')); }
+
+  go(k){ this.setState({screen:k,notifOpen:false,paletteOpen:false}); }
+  setTheme(t){ this.setState({theme:t}); document.documentElement.setAttribute('data-theme',t); }
+  toast(m){ clearTimeout(this._tt); this.setState({toast:m}); this._tt=setTimeout(()=>this.setState({toast:''}),2600); }
+  fmtH(n){ return String(parseFloat((Math.round(n*100)/100).toFixed(2))); }
+
+  updE(i,f,val){
+    const d=this.state.activeDay;
+    this.setState(s=>{
+      const list=(s.entriesByDay[d]||[]).map((e,j)=> j===i? {...e,[f]:val}:e);
+      return {entriesByDay:{...s.entriesByDay,[d]:list}};
+    });
+  }
+  addE(p=0){
+    const d=this.state.activeDay;
+    this.setState(s=>({entriesByDay:{...s.entriesByDay,[d]:[...(s.entriesByDay[d]||[]),{p,task:'',desc:'',start:'',end:'',brk:'',billable:true,hours:''}]}}));
+  }
+  rmE(i){
+    const d=this.state.activeDay;
+    this.setState(s=>({entriesByDay:{...s.entriesByDay,[d]:(s.entriesByDay[d]||[]).filter((_,j)=>j!==i)}}));
+  }
+  setCell(ri,ci,val){
+    this.setState(s=>({weekRows:s.weekRows.map((r,i)=> i===ri? {...r,hours:r.hours.map((h,j)=> j===ci? (val===''?'':parseFloat(val)||0):h)}:r)}));
+  }
+  decide(id,st){
+    this.setState(s=>({approvals:s.approvals.map(a=>a.id===id?{...a,status:st}:a), sel:{...s.sel,[id]:false}}));
+    this.toast(st==='Approved'?'Timesheet approved':'Timesheet rejected — employee notified');
+  }
+
+  renderVals(){
+    const s=this.state, P=this.projects;
+    const v={};
+    const inkSide=s.sideTone==='dark';
+    // tweaks panel
+    v.tweaksOpen=s.tweaksOpen;
+    v.toggleTweaks=()=>this.setState(x=>({tweaksOpen:!x.tweaksOpen,notifOpen:false,paletteOpen:false}));
+    v.closeTweaks=()=>this.setState({tweaksOpen:false});
+    const curAccent=s.accentPick||(this.props.accent??'#4757E6');
+    v.accentOpts=[['#4757E6','Indigo'],['#0E9384','Teal'],['#B4441F','Rust'],['#7839EE','Violet']].map(([c,label])=>({
+      c,label,onClick:()=>this.setState({accentPick:c}),
+      ring:c===curAccent?'0 0 0 2px var(--surface), 0 0 0 4px '+c:'none'
+    }));
+    const seg=(opts,cur,fn)=>opts.map(([k,label])=>({label,onClick:()=>fn(k),
+      bg:cur===k?'var(--text)':'transparent',fg:cur===k?'var(--bg)':'var(--text2)'}));
+    v.toneOpts=seg([['light','Quiet'],['dark','Ink']],s.sideTone,(k)=>this.setState({sideTone:k}));
+    v.densityOpts=seg([['comfortable','Comfortable'],['compact','Compact']],s.density,(k)=>this.setState({density:k}));
+    v.uiZoom=s.density==='compact'?'0.86':'1';
+    v.sideVars=inkSide
+      ?'--surface:#10142E;--surface2:#1C2342;--border:#232A4E;--border2:#39416B;--text:#EEF1F5;--text2:#A9B0CE;--text3:#6E7699;--bg:#171D3B;--accent-soft:color-mix(in oklab, var(--accent) 32%, #10142E);--accent-text:color-mix(in oklab, var(--accent) 55%, #fff)'
+      :'';
+    const screens={dashboard:'Dashboard',daily:'Daily Timesheet',weekly:'Weekly Timesheet',manager:'Team Overview',approvals:'Approvals',projects:'Projects',reports:'Reports'};
+    Object.keys(screens).forEach(k=>{
+      const a=s.screen===k;
+      v['go_'+k]=()=>this.go(k);
+      v['show_'+k]=a;
+      v['navBg_'+k]=a?'var(--accent-soft)':'transparent';
+      v['navFg_'+k]=a?'var(--accent-text)':'var(--text2)';
+      v['navWt_'+k]=a?650:500;
+    });
+    v.showLogin=s.screen==='login';
+    v.showApp=s.screen!=='login';
+    v.screenTitle=screens[s.screen]||'';
+    v.doLogin=()=>{this.go('dashboard');this.toast('Welcome back, Alex');};
+    v.doLogout=()=>this.setState({screen:'login',notifOpen:false});
+    v.toggleTheme=()=>this.setTheme(s.theme==='light'?'dark':'light');
+    v.isDark=s.theme==='dark'; v.isLight=s.theme!=='dark';
+    v.notifOpen=s.notifOpen;
+    v.toggleNotif=()=>this.setState(x=>({notifOpen:!x.notifOpen,paletteOpen:false}));
+    v.showBadge=s.unread>0; v.unread=s.unread;
+    v.markAllRead=()=>this.setState({unread:0});
+    v.showToast=!!s.toast; v.toastMsg=s.toast;
+    v.stopProp=(e)=>e.stopPropagation();
+
+    // command palette
+    v.paletteQuery=s.paletteQuery;
+    v.openPalette=()=>this.setState({paletteOpen:true,paletteQuery:''});
+    v.closePalette=()=>this.setState({paletteOpen:false});
+    v.onPaletteInput=(e)=>this.setState({paletteQuery:e.target.value});
+    v.paletteOpen=s.paletteOpen;
+    const acts=[
+      {label:'Go to Dashboard',hint:'Page',k:'dashboard',glyph:'▦'},
+      {label:'Log time — Daily Entry',hint:'Page',k:'daily',glyph:'◔'},
+      {label:'Weekly Timesheet',hint:'Page',k:'weekly',glyph:'▤'},
+      {label:'Team Overview',hint:'Page',k:'manager',glyph:'◫'},
+      {label:'Approvals',hint:'Page',k:'approvals',glyph:'✓'},
+      {label:'Projects',hint:'Page',k:'projects',glyph:'▣'},
+      {label:'Reports',hint:'Page',k:'reports',glyph:'▥'},
+      {label:'Toggle dark mode',hint:'Action',fn:()=>{v.toggleTheme();this.setState({paletteOpen:false});},glyph:'◐'},
+      {label:'Submit weekly timesheet',hint:'Action',fn:()=>{this.setState({weekStatus:'Pending',paletteOpen:false,screen:'weekly'});this.toast('Timesheet submitted — pending approval');},glyph:'↑'},
+      {label:'Sign out',hint:'Action',fn:()=>this.setState({screen:'login',paletteOpen:false}),glyph:'←'}
+    ];
+    const q=s.paletteQuery.toLowerCase();
+    v.paletteItems=acts.filter(a=>!q||a.label.toLowerCase().includes(q)).map(a=>({label:a.label,hint:a.hint,glyph:a.glyph,onClick:a.k?()=>this.go(a.k):a.fn}));
+
+    // tasks
+    v.tasks=s.tasks.map(t=>({
+      label:t.label, project:P[t.p].name.split(' ')[0], color:P[t.p].color, done:t.done,
+      deco:t.done?'line-through':'none', fg:t.done?'var(--text3)':'var(--text)',
+      boxBorder:t.done?'var(--accent)':'var(--border2)', boxBg:t.done?'var(--accent)':'transparent',
+      due:t.due, dueColor:t.urgent?'var(--red)':(t.done?'var(--text3)':'var(--text2)'),
+      onToggle:()=>this.setState(x=>({tasks:x.tasks.map(y=>y.id===t.id?{...y,done:!y.done}:y)}))
+    }));
+    v.tasksOpenLabel = s.tasks.filter(t=>!t.done).length+' open';
+
+    // daily entry
+    const dayDefs=[['Mon','29'],['Tue','30'],['Wed','1'],['Thu','2'],['Fri','3'],['Sat','4'],['Sun','5']];
+    v.days=dayDefs.map((d,i)=>{
+      const a=i===s.activeDay;
+      const tot=(s.entriesByDay[i]||[]).reduce((t,e)=>t+(parseFloat(e.hours)||0),0);
+      return {name:d[0],num:d[1],
+        onClick:()=>this.setState({activeDay:i}),
+        bg:a?'var(--accent)':'var(--surface)', fg:a?'#fff':'var(--text)',
+        sub:a?'rgba(255,255,255,.72)':(tot>=8?'var(--green)':(tot>0?'var(--text3)':'var(--text3)')),
+        border:a?'var(--accent)':'var(--border)',
+        subLabel: tot>0? this.fmtH(tot)+'h' : (i>=5?'—':'0h'),
+        dotBg: a?'rgba(255,255,255,.72)':(tot>=8?'var(--green)':(tot>0?'var(--amber)':'var(--border2)'))};
+    });
+    v.activeDayLabel=this.dayLabels[s.activeDay];
+    const ents=s.entriesByDay[s.activeDay]||[];
+    v.hasEntries=ents.length>0; v.noEntries=ents.length===0;
+    v.entries=ents.map((e,i)=>({
+      key:i, pv:String(e.p), color:P[e.p].color,
+      onProject:(ev)=>this.updE(i,'p',parseInt(ev.target.value,10)),
+      task:e.task, onTask:(ev)=>this.updE(i,'task',ev.target.value),
+      desc:e.desc, onDesc:(ev)=>this.updE(i,'desc',ev.target.value),
+      start:e.start, onStart:(ev)=>this.updE(i,'start',ev.target.value),
+      end:e.end, onEnd:(ev)=>this.updE(i,'end',ev.target.value),
+      brk:e.brk, onBrk:(ev)=>this.updE(i,'brk',ev.target.value),
+      billable:e.billable, onBillable:()=>this.updE(i,'billable',!e.billable),
+      billLabel:e.billable?'Billable':'Non-bill.',
+      billBg:e.billable?'var(--green-soft)':'var(--surface2)',
+      billFg:e.billable?'var(--green)':'var(--text3)',
+      hours:e.hours===''?'':String(e.hours), onHours:(ev)=>this.updE(i,'hours',ev.target.value),
+      onRemove:()=>this.rmE(i)
+    }));
+    const dayTotal=ents.reduce((t,e)=>t+(parseFloat(e.hours)||0),0);
+    v.dayTotal=this.fmtH(dayTotal);
+    v.dayPct=Math.min(100,dayTotal/8*100)+'%';
+    v.dayBarColor=dayTotal>8?'var(--amber)':(dayTotal>=8?'var(--green)':'var(--accent)');
+    v.dayCountLabel=this.fmtH(dayTotal)+' / 8h logged';
+    v.dayRemainLabel=dayTotal>8? this.fmtH(dayTotal-8)+'h over standard day' : (dayTotal>=8?'Day complete ✓':this.fmtH(8-dayTotal)+'h remaining');
+    v.dayRemainColor=dayTotal>8?'var(--amber)':(dayTotal>=8?'var(--green)':'var(--text3)');
+    v.addEntry=()=>this.addE(0);
+    v.duplicateYesterday=()=>{
+      const d=s.activeDay;
+      if(d===0){this.toast('No previous day in this week');return;}
+      const prev=s.entriesByDay[d-1]||[];
+      if(!prev.length){this.toast('No entries to copy from yesterday');return;}
+      this.setState(x=>({entriesByDay:{...x.entriesByDay,[d]:prev.map(e=>({...e}))}}));
+      this.toast('Copied '+prev.length+' entries from yesterday');
+    };
+    v.saveDraft=()=>this.toast('Draft saved · auto-save is on');
+    v.submitDay=()=>this.toast('Day submitted for approval');
+    v.projectOptions=P.map((p,idx)=>({idx:String(idx),name:p.name}));
+    v.favProjects=[0,3,1,6].map(idx=>({name:P[idx].name.split('·')[0].trim(),color:P[idx].color,onClick:()=>{this.addE(idx);this.toast('Entry added — '+P[idx].name);}}));
+
+    // weekly
+    v.weekLabel=this.weekLabels[s.weekIdx];
+    v.prevWeek=()=>this.setState(x=>({weekIdx:Math.max(0,x.weekIdx-1)}));
+    v.nextWeek=()=>this.setState(x=>({weekIdx:Math.min(3,x.weekIdx+1)}));
+    const rowSums=s.weekRows.map(r=>r.hours.reduce((t,h)=>t+(parseFloat(h)||0),0));
+    v.weekRows=s.weekRows.map((r,ri)=>({
+      name:P[r.p].name, client:P[r.p].client, color:P[r.p].color, task:r.task,
+      total:this.fmtH(rowSums[ri])+'h',
+      cells:r.hours.map((h,ci)=>({
+        val:h===''?'':String(h),
+        onChange:(ev)=>this.setCell(ri,ci,ev.target.value),
+        bg:ci>=5?'var(--surface2)':'transparent'
+      })),
+      onRemoveRow:()=>this.setState(x=>({weekRows:x.weekRows.filter((_,j)=>j!==ri)}))
+    }));
+    const dayTotals=[0,1,2,3,4,5,6].map(ci=>s.weekRows.reduce((t,r)=>t+(parseFloat(r.hours[ci])||0),0));
+    v.dayTotals=dayTotals.map(t=>({val:t?this.fmtH(t):'—',color:t>=8?'var(--green)':(t>0?'var(--text)':'var(--text3)')}));
+    const wt=dayTotals.reduce((a,b)=>a+b,0);
+    v.weekTotal=this.fmtH(wt);
+    v.weekPct=Math.round(wt/40*100);
+    v.weekPctW=Math.min(100,wt/40*100)+'%';
+    v.weekRemaining=this.fmtH(Math.max(0,40-wt));
+    v.ringDash=(Math.min(100,wt/40*100)/100*351.9).toFixed(1);
+    v.weekStatus=s.weekStatus;
+    const wchip={Draft:['var(--surface2)','var(--text2)'],Pending:['var(--amber-soft)','var(--amber)'],Approved:['var(--green-soft)','var(--green)']};
+    v.weekStatusBg=wchip[s.weekStatus][0]; v.weekStatusFg=wchip[s.weekStatus][1];
+    v.canSubmit=s.weekStatus==='Draft';
+    v.submitLabel=s.weekStatus==='Draft'?'Submit for approval':(s.weekStatus==='Pending'?'Submitted · awaiting review':'Approved');
+    v.submitBg=s.weekStatus==='Draft'?'var(--accent)':'var(--surface2)';
+    v.submitFg=s.weekStatus==='Draft'?'#fff':'var(--text3)';
+    v.submitCursor=s.weekStatus==='Draft'?'pointer':'default';
+    v.submitWeek=()=>{ if(s.weekStatus!=='Draft')return; this.setState({weekStatus:'Pending'}); this.toast('Timesheet submitted — pending approval'); };
+    v.addWeekRow=()=>this.setState(x=>({weekRows:[...x.weekRows,{p:6,task:'',hours:['','','','','','','']}]}));
+    v.exportPdf=()=>this.toast('Exporting PDF…');
+    v.exportXls=()=>this.toast('Exporting Excel…');
+    v.printSheet=()=>this.toast('Sending to print…');
+
+    // approvals
+    const achip={Pending:['var(--amber-soft)','var(--amber)'],Approved:['var(--green-soft)','var(--green)'],Rejected:['var(--red-soft)','var(--red)']};
+    v.approvals=s.approvals.map(a=>({
+      ...a,
+      hoursLabel:this.fmtH(a.hours)+'h',
+      billableLabel:a.billable+'%',
+      avBg:this.avColors[a.initials]||'#475467',
+      statusBg:achip[a.status][0], statusFg:achip[a.status][1],
+      isPending:a.status==='Pending',
+      hasFlag:!!a.flag,
+      checked:!!s.sel[a.id],
+      checkBg:s.sel[a.id]?'var(--accent)':'transparent',
+      checkBorder:s.sel[a.id]?'var(--accent)':'var(--border2)',
+      rowBg:s.sel[a.id]?'var(--accent-soft)':'transparent',
+      onSelect:()=>this.setState(x=>({sel:{...x.sel,[a.id]:!x.sel[a.id]}})),
+      onApprove:()=>this.decide(a.id,'Approved'),
+      onReject:()=>this.decide(a.id,'Rejected')
+    }));
+    const selIds=Object.keys(s.sel).filter(id=>s.sel[id]);
+    v.selCount=selIds.length;
+    v.showBulk=selIds.length>0;
+    v.selCountLabel=selIds.length+' selected';
+    v.bulkApprove=()=>{
+      this.setState(x=>({approvals:x.approvals.map(a=>selIds.includes(a.id)&&a.status==='Pending'?{...a,status:'Approved'}:a),sel:{}}));
+      this.toast(selIds.length+' timesheets approved');
+    };
+    v.clearSel=()=>this.setState({sel:{}});
+    v.pendingCount=s.approvals.filter(a=>a.status==='Pending').length;
+    v.showApprBadge=v.pendingCount>0;
+    v.pendingHours=this.fmtH(s.approvals.filter(a=>a.status==='Pending').reduce((t,a)=>t+a.hours,0));
+
+    // manager
+    v.missing=[
+      {name:'Tom Okafor',dept:'Data · 2 weeks overdue',initials:'TO',bg:this.avColors.TO,sev:'var(--red)',onRemind:()=>this.toast('Reminder sent to Tom Okafor')},
+      {name:'Amy Park',dept:'Engineering · due today',initials:'AP',bg:this.avColors.AP,sev:'var(--amber)',onRemind:()=>this.toast('Reminder sent to Amy Park')},
+      {name:'Marcus Webb',dept:'Engineering · this week',initials:'MW',bg:this.avColors.MW,sev:'var(--amber)',onRemind:()=>this.toast('Reminder sent to Marcus Webb')}
+    ];
+
+    // projects
+    const chips=['All','Running','At risk','Completed'];
+    const real=P.filter(p=>p.client!=='eTech');
+    const riskSet=['At risk','Over budget','Delayed'];
+    const matches=(p)=> s.projFilter==='All'?true : s.projFilter==='Running'? p.health!=='Completed' : s.projFilter==='At risk'? riskSet.includes(p.health) : p.health==='Completed';
+    v.projChips=chips.map(c=>{
+      const n=real.filter(p=> c==='All'?true : c==='Running'? p.health!=='Completed' : c==='At risk'? riskSet.includes(p.health) : p.health==='Completed').length;
+      const a=s.projFilter===c;
+      return {label:c+' · '+n, onClick:()=>this.setState({projFilter:c}),
+        bg:a?'var(--text)':'var(--surface)', fg:a?'var(--bg)':'var(--text2)', border:a?'var(--text)':'var(--border2)'};
+    });
+    const hchip={'On track':['var(--green-soft)','var(--green)'],'At risk':['var(--amber-soft)','var(--amber)'],'Over budget':['var(--red-soft)','var(--red)'],'Delayed':['var(--red-soft)','var(--red)'],'Completed':['var(--surface2)','var(--text2)']};
+    v.projCards=real.filter(matches).map(p=>{
+      const rem=p.est-p.act;
+      const bpct=p.budget?Math.round(p.spent/p.budget*100):0;
+      return {
+        name:p.name, client:p.client, color:p.color,
+        healthLabel:p.health, healthBg:hchip[p.health][0], healthFg:hchip[p.health][1],
+        compLabel:p.completion+'%', compW:p.completion+'%',
+        estLabel:p.est+'h', actLabel:p.act+'h',
+        remLabel:rem>=0? rem+'h left':Math.abs(rem)+'h over',
+        remColor:rem>=0?'var(--text2)':'var(--red)',
+        budgetLabel:'$'+Math.round(p.budget/1000)+'k', spentLabel:'$'+Math.round(p.spent/1000)+'k',
+        budgetPct:Math.min(100,bpct)+'%', budgetPctLabel:bpct+'%',
+        budgetColor:bpct>100?'var(--red)':(bpct>90?'var(--amber)':'var(--accent)'),
+        due:p.due, showWarn:!!p.warn, warn:p.warn||'',
+        team:p.team.map(init=>({init,bg:this.avColors[init]||'#475467'}))
+      };
+    });
+
+    return v;
+  }
+}
+</script>
+</body>
+</html>

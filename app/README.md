@@ -1,0 +1,208 @@
+# Timesheet & Project-Management SaaS (Base)
+
+A white-label **time tracking + project management** web app built in React + TypeScript.
+It is a faithful, fully-interactive implementation of the `ui-mockup/` design — the same
+9 screens, light **and** dark themes, and live derived calculations.
+
+"eTech" is only the **default demo brand**. Everything tenant-specific lives in one config
+file (`src/config/brand.ts`), so the whole app re-skins for any organization with no other
+code changes.
+
+> **This README is the living document for the app.** It is updated with every meaningful
+> change. See the [Changelog](#changelog) at the bottom.
+
+---
+
+## Tech stack
+
+| Concern | Choice |
+| --- | --- |
+| Build tool | Vite 8 (Rolldown) |
+| UI | React 19 |
+| Language | TypeScript (strict) |
+| Routing | React Router 7 |
+| State | Zustand 5 |
+| Styling | CSS custom-property tokens + CSS Modules |
+| Fonts | Instrument Sans (Google Fonts) |
+
+No component/UI framework — all primitives are hand-built against the design tokens so the
+output matches the mockup exactly.
+
+---
+
+## Quick start
+
+**Prerequisites:** Node.js (recommended **20.19+** or **22.12+** for Vite 8; it also runs on
+20.15 with a warning).
+
+```bash
+cd app
+npm install
+npm run dev      # start the dev server (prints a localhost URL)
+```
+
+Then **Sign in** on the login screen (auth is simulated — any click signs you in) to reach
+the app.
+
+**Other scripts**
+
+```bash
+npm run build    # type-check (tsc -b) + production build to dist/
+npm run preview  # preview the production build
+npm run lint     # oxlint
+```
+
+> **Windows note:** Vite 8's Rolldown needs a platform-native binary
+> (`@rolldown/binding-win32-x64-msvc`). It is pinned in `optionalDependencies`. If a build
+> ever fails with *"Cannot find native binding"*, run:
+> `rm -rf node_modules package-lock.json && npm install`.
+
+---
+
+## Project structure
+
+```
+app/
+├─ index.html                 # fonts + root mount
+├─ src/
+│  ├─ main.tsx                # entry; applies theme/accent before first paint
+│  ├─ App.tsx                 # RouterProvider
+│  ├─ router.tsx              # routes + auth gate
+│  │
+│  ├─ config/
+│  │  ├─ brand.ts             # ⭐ WHITE-LABEL config (name, logo, hero, clients, accent, user)
+│  │  └─ nav.ts               # sidebar sections + per-route titles
+│  │
+│  ├─ styles/
+│  │  ├─ tokens.css           # light/dark design tokens + .sidebar-ink tone
+│  │  └─ global.css           # reset, scrollbars, keyframes, helpers
+│  │
+│  ├─ lib/
+│  │  ├─ types.ts             # domain models (Project, TimeEntry, Task, WeekRow, Approval…)
+│  │  ├─ mockData.ts          # seed data (swap for an API later)
+│  │  └─ calc.ts              # derived math + status→badge-tone helpers
+│  │
+│  ├─ store/
+│  │  ├─ useUiStore.ts        # theme, accent, sidebar tone, density, panels, toast
+│  │  ├─ useAuthStore.ts      # simulated auth (route guard)
+│  │  └─ useTimesheetStore.ts # entries, weekly grid, tasks, approvals, projects filter
+│  │
+│  ├─ components/             # reusable primitives
+│  │  ├─ Button, Card, Badge, ProgressBar, Ring, Avatar,
+│  │  ├─ KpiCard, Icon, Toast, PageContainer
+│  │  └─ index.ts             # barrel export
+│  │
+│  ├─ layout/                 # app chrome
+│  │  ├─ AppShell.tsx         # grid: sidebar + topbar + content; global ⌘K/Esc
+│  │  ├─ Sidebar.tsx, TopBar.tsx
+│  │  ├─ NotificationPanel.tsx, CommandPalette.tsx, TweaksPanel.tsx
+│  │
+│  └─ features/              # one folder per screen
+│     ├─ auth/LoginPage.tsx
+│     ├─ dashboard/          # DashboardPage + HoursBarChart
+│     ├─ daily/              # DailyEntryPage (editable entry grid)
+│     ├─ weekly/             # WeeklyTimesheetPage (editable week grid)
+│     ├─ approvals/          # ApprovalsPage (table + bulk + audit trail)
+│     ├─ manager/            # ManagerDashboardPage (Team Overview)
+│     ├─ projects/           # ProjectsPage (filterable cards)
+│     └─ reports/            # ReportsPage (SVG trend, donut, tables)
+```
+
+Path alias: `@/` → `src/` (configured in `vite.config.ts` and `tsconfig.app.json`).
+
+---
+
+## Screens
+
+| Route | Screen | Role |
+| --- | --- | --- |
+| `/login` | Login (split hero + SSO/email) | All |
+| `/dashboard` | Employee Dashboard | IC |
+| `/daily` | Daily Timesheet Entry | IC |
+| `/weekly` | Weekly Timesheet | IC |
+| `/team` | Team Overview | Manager |
+| `/approvals` | Approvals | Manager |
+| `/projects` | Projects | Manager |
+| `/reports` | Reports | Manager / Exec |
+
+All numbers are **derived live** from the store (e.g. editing a weekly cell recomputes row,
+day, week totals and the completion %).
+
+---
+
+## Architecture notes
+
+### Design tokens & theming
+All color/spacing lives in CSS custom properties in `styles/tokens.css`. Light is the
+default; `html[data-theme="dark"]` overrides. The UI store writes `data-theme` and `--accent`
+onto `<html>`, so **dark mode and accent changes propagate automatically** to every component.
+
+### State
+- **`useUiStore`** — appearance (theme, accent, sidebar tone, density) + transient UI
+  (command palette, notifications, tweaks panel, toast).
+- **`useAuthStore`** — simulated auth flag + current user; guards the app shell.
+- **`useTimesheetStore`** — all business data and mutations (entries, weekly grid, tasks,
+  approvals, project filter).
+
+### Data layer (mock → API-ready)
+`lib/mockData.ts` seeds the store. To wire a real backend later, replace the seed reads /
+mutations in `useTimesheetStore` with API calls — the component layer doesn't change.
+
+---
+
+## Re-branding (white-label)
+
+Edit **`src/config/brand.ts`**:
+
+```ts
+export const brand = {
+  name: 'eTech',                 // workspace/product name
+  suffix: 'Timesheet',           // secondary word next to the name
+  logoMark: 'e',                 // single-char logo tile
+  heroTitle: 'Time, accounted for.',
+  heroSubtitle: '…',
+  signInSubtitle: 'Sign in to your eTech workspace',
+  clients: ['Nexbank', 'Vertex Retail', 'MedCore Health', 'GreenGrid Energy'],
+  defaultAccent: '#4757E6',      // brand accent (also selectable in the tweaks panel)
+};
+
+export const currentUser = {
+  name: 'Alex Morgan',
+  role: 'Senior Consultant',
+  initials: 'AM',
+  email: 'alex.morgan@etech.io',
+};
+```
+
+Changing these updates the login hero, sidebar, titles, and demo user everywhere. To change
+the default palette, also update `defaultAccent` (or edit the accent options in
+`layout/TweaksPanel.tsx`).
+
+---
+
+## Known limitations / future work
+
+These are intentionally **out of scope** for this UI port (the app matches the mockup, which
+has the same constraints):
+
+- **Auth is simulated** — no real session, backend, or RBAC. The service seam is ready.
+- **Desktop-first** — enforces a min width like the mockup; no mobile/responsive layouts yet.
+- **Accessibility** — custom checkboxes/toggles/palette are mouse-first; ARIA + keyboard
+  hardening is future work.
+- **Node/Vite** — Vite 8 prefers Node 20.19+/22.12+; builds on 20.15 with a warning.
+
+---
+
+## Changelog
+
+Newest first. Update this on every meaningful change.
+
+### 2026-07-12 — Initial build
+- Scaffolded Vite + React 19 + TypeScript; added React Router + Zustand.
+- Ported design tokens (light/dark) and built the primitive component library.
+- Built typed data layer + mock data + derived-calculation helpers and the three stores.
+- Built the app shell: sidebar, topbar, routing + auth gate, command palette (⌘K),
+  notifications, appearance tweaks (accent / Ink sidebar / density), toasts.
+- Built all 9 screens (Login, Dashboard, Daily Entry, Weekly Timesheet, Approvals, Team
+  Overview, Projects, Reports) — verified against the mockup in light and dark.
+- Added `config/brand.ts` white-label config so the app re-skins from one file.

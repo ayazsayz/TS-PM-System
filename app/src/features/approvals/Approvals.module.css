@@ -1,0 +1,48 @@
+.row:hover {
+  background: var(--surface2);
+}
+
+.actionBtn {
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+.actionBtn:hover {
+  filter: brightness(0.95);
+}
+.approve {
+  background: var(--green-soft);
+  color: var(--green);
+}
+.reject {
+  background: var(--red-soft);
+  color: var(--red);
+}
+.viewBtn {
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.viewBtn:hover {
+  background: var(--surface2);
+}
+
+.checkbox {
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 4px;
+}

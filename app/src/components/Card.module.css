@@ -1,0 +1,28 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+}
+
+.pad {
+  padding: 20px;
+}
+
+.hoverable {
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.hoverable:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.title {
+  font-size: 14.5px;
+  font-weight: 650;
+}

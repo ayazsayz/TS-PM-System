@@ -1,0 +1,50 @@
+.row:hover {
+  background: var(--surface2);
+}
+
+.cell {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 4px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.cell:hover {
+  border-color: var(--border2);
+  background: var(--surface);
+}
+
+.removeBtn {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text3);
+  justify-self: end;
+  transition: background 0.12s, color 0.12s;
+}
+.removeBtn:hover {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.navBtn {
+  width: 34px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text2);
+  background: var(--surface);
+}
+.navBtn:hover {
+  background: var(--surface2);
+}

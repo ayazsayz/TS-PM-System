@@ -1,0 +1,79 @@
+/**
+ * Design tokens — semantic CSS custom properties.
+ * Ported verbatim from the ui-mockup so theming stays pixel-identical.
+ * Light is the default; [data-theme="dark"] overrides on <html>.
+ * --accent is set at runtime by the UI store (white-label / tweaks panel).
+ */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface2: #f0f2f5;
+  --border: #e4e7ec;
+  --border2: #d2d8e0;
+  --text: #161b26;
+  --text2: #57616e;
+  --text3: #8b94a1;
+
+  --accent: #4757e6;
+  --accent-soft: color-mix(in oklab, var(--accent) 9%, #ffffff);
+  --accent-text: var(--accent);
+  --accent-hover: color-mix(in oklab, var(--accent) 86%, #000);
+
+  --green: #0e8345;
+  --green-soft: #e5f4ea;
+  --amber: #b45309;
+  --amber-soft: #fbeedc;
+  --red: #c0362c;
+  --red-soft: #fbeae8;
+
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-lg: 0 16px 40px -12px rgba(16, 24, 40, 0.22);
+
+  /* radii / spacing scale used across primitives */
+  --r-sm: 7px;
+  --r-md: 9px;
+  --r-lg: 12px;
+  --r-xl: 14px;
+}
+
+html[data-theme='dark'] {
+  --bg: #0e1116;
+  --surface: #161a21;
+  --surface2: #1d232c;
+  --border: #272e39;
+  --border2: #39414e;
+  --text: #eef1f5;
+  --text2: #9ca6b2;
+  --text3: #66707d;
+
+  --accent-soft: color-mix(in oklab, var(--accent) 24%, #14181f);
+  --accent-text: color-mix(in oklab, var(--accent) 55%, #fff);
+  --accent-hover: color-mix(in oklab, var(--accent) 82%, #fff);
+
+  --green: #41c980;
+  --green-soft: #132a1d;
+  --amber: #efa84e;
+  --amber-soft: #2e2212;
+  --red: #f0806f;
+  --red-soft: #331815;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 20px 48px -12px rgba(0, 0, 0, 0.6);
+}
+
+/**
+ * "Ink" sidebar tone (from the tweaks panel). Applied as a class on the
+ * sidebar element so it can carry a dark palette regardless of app theme.
+ */
+.sidebar-ink {
+  --surface: #10142e;
+  --surface2: #1c2342;
+  --border: #232a4e;
+  --border2: #39416b;
+  --text: #eef1f5;
+  --text2: #a9b0ce;
+  --text3: #6e7699;
+  --bg: #171d3b;
+  --accent-soft: color-mix(in oklab, var(--accent) 32%, #10142e);
+  --accent-text: color-mix(in oklab, var(--accent) 55%, #fff);
+}
