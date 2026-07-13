@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddDbContext<AppDbContext>(o => o.UseSqlServer(connectionString));
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<IUserDirectory, UserDirectory>();
+        services.AddScoped<IUserAdminService, UserAdminService>();
 
         services
             .AddIdentityCore<ApplicationUser>(o =>

@@ -10,3 +10,4 @@ export { Avatar } from './Avatar';
 export { KpiCard } from './KpiCard';
 export { Toast } from './Toast';
 export { PageContainer } from './PageContainer';
+export { Modal } from './Modal';

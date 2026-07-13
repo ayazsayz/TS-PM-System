@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.OpenApi;
 using Serilog;
 using Tspm.Api.Auth;
+using Tspm.Api.ExceptionHandlers;
 using Tspm.Api.Filters;
 using Tspm.Application;
 using Tspm.Application.Common.Interfaces;
@@ -22,9 +23,14 @@ builder.Services.AddApplication();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
-builder.Services.AddControllers(o => o.Filters.Add<ValidationFilter>());
+builder.Services.AddControllers(o =>
+{
+    o.Filters.Add<ValidationFilter>();
+    o.Filters.Add<MustChangePasswordFilter>();
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<AppExceptionHandler>();
 
 const string CorsPolicy = "Frontend";
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()

@@ -36,7 +36,7 @@ export default function DashboardPage() {
       >
         <div>
           <h1 style={{ margin: '0 0 4px', fontSize: 23, fontWeight: 700, letterSpacing: '-0.02em' }}>
-            Good morning, {user.name.split(' ')[0]}
+            Good morning, {user?.fullName.split(' ')[0] ?? 'there'}
           </h1>
           <div style={{ fontSize: 13.5, color: 'var(--text3)' }}>
             Friday, July 3 · Week 27 ·{' '}

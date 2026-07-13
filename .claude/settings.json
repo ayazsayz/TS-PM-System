@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout *)",
+      "Bash(dotnet ef *)",
+      "Bash(dotnet test *)",
+      "Bash(sed -n 's/.*\"oneTimePassword\":\"\\\\\\([^\"]*\\\\\\)\".*/\\\\1/p' /tmp/new.json)",
+      "Bash(curl -s -X POST http://localhost:5090/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"nina.patel@etech.io\",\"password\":\"__CMDSUB_OUTPUT__\"}' -o /tmp/nina.json -w 'HTTP %{http_code}\\\\n')",
+      "Read(//tmp/**)",
+      "Bash(sed -n 's/.*\"accessToken\":\"\\\\\\([^\"]*\\\\\\)\".*/\\\\1/p' /tmp/nina.json)",
+      "Bash(curl -s http://localhost:5090/api/projects -H 'Authorization: Bearer __TRACKED_VAR__' -w '\\\\nHTTP %{http_code}\\\\n')",
+      "Bash(curl -s http://localhost:5090/api/auth/me -H 'Authorization: Bearer __TRACKED_VAR__' -o /dev/null -w 'HTTP %{http_code}\\\\n')"
+    ]
+  }
+}

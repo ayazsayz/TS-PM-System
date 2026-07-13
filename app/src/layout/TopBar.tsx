@@ -33,7 +33,7 @@ export function TopBar() {
           <Icon name="bell" size={15} />
           {unread > 0 && <span className={styles.notifDot}>{unread}</span>}
         </div>
-        <div className={styles.avatarBtn}>{user.initials}</div>
+        <div className={styles.avatarBtn}>{user?.initials ?? '?'}</div>
       </div>
 
       {notifOpen && <NotificationPanel />}

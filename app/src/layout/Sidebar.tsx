@@ -13,10 +13,14 @@ export function Sidebar() {
   const sidebarTone = useUiStore((s) => s.sidebarTone);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const hasRole = useAuthStore((s) => s.hasRole);
   const pending = useTimesheetStore(selectPendingCount);
 
-  const doLogout = () => {
-    logout();
+  // Role-gated sections (e.g. ADMIN) are hidden for users without the role.
+  const sections = navSections.filter((s) => !s.requiresRole || hasRole(s.requiresRole));
+
+  const doLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
@@ -35,7 +39,7 @@ export function Sidebar() {
         <span className={styles.kbd}>⌘K</span>
       </button>
 
-      {navSections.map((section, si) => (
+      {sections.map((section, si) => (
         <div key={section.heading}>
           <div className={`${styles.heading} ${si > 0 ? styles.headingTight : ''}`}>
             {section.heading}
@@ -60,10 +64,10 @@ export function Sidebar() {
 
       <div className={styles.footer}>
         <div className={styles.userRow}>
-          <Avatar initials={user.initials} />
+          <Avatar initials={user?.initials ?? '?'} />
           <div className={styles.userMeta}>
-            <div className={styles.userName}>{user.name}</div>
-            <div className={styles.userRole}>{user.role}</div>
+            <div className={styles.userName}>{user?.fullName ?? ''}</div>
+            <div className={styles.userRole}>{user?.title ?? ''}</div>
           </div>
           <div className={styles.logout} title="Sign out" onClick={doLogout}>
             <Icon name="logout" size={14} />
