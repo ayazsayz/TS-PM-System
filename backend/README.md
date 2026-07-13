@@ -132,12 +132,37 @@ system recomputes them from `TimeEntry` history). Current-week totals *are* deri
 - `GET /api/timesheets?weekStart=YYYY-MM-DD` (weekly grid derived from entries)
 - `POST /api/timesheets/submit?weekStart=YYYY-MM-DD`
 
-### Planned 🚧
-- **Approvals** (list / approve / reject / bulk / audit trail)
-- **Team Overview** (utilization, missing timesheets, top performers)
-- **Dashboards** (employee + manager KPI aggregates)
-- **Reports** (revenue KPIs, 12-week trend, billable split, est-vs-actual, client billing)
-- **Notifications** (list, mark-all-read)
+**Approvals** *(Manager/Admin)*
+- `GET /api/approvals` (`?status=pending`)
+- `POST /api/approvals/{id}/approve`, `POST /api/approvals/{id}/reject` (body: `{ comment }`)
+- `POST /api/approvals/bulk-approve` (body: `{ ids: [] }`)
+- `GET /api/approvals/history` — audit trail
+
+Approving/rejecting updates the timesheet, writes an **audit-log entry**, and raises a
+**notification** for the employee.
+
+**Team** *(Manager/Admin)*
+- `GET /api/team/utilization`, `GET /api/team/missing`, `GET /api/team/top-performers`
+
+**Dashboards**
+- `GET /api/dashboard/employee` — today/week hours, week %, billable %, pending weeks
+- `GET /api/dashboard/manager` *(Manager/Admin)* — pending approvals + hours, missing
+  timesheets, team utilization, projects at risk
+
+**Reports** *(Manager/Admin)*
+- `GET /api/reports/summary` — budget/spend, est-vs-actual per project, client billing,
+  billable split, average utilization
+
+**Notifications**
+- `GET /api/notifications` (with unread count + relative "ago" labels)
+- `POST /api/notifications/mark-all-read`
+
+### Notes on derived data
+- **Employee dashboard** uses the user's *most recently logged day* as its reference day, so the
+  seeded demo data stays meaningful (rather than showing zeros for the real calendar date).
+- **Team utilization** is derived from each employee's latest timesheet hours ÷ 40.
+- **Reports** intentionally omit revenue/cost/margin — those need billing-rate configuration
+  (a future finance module). Budget, spend, hours, and utilization are reported.
 
 ---
 
@@ -163,6 +188,19 @@ dotnet test  Tspm.slnx
 ## Changelog
 
 Newest first.
+
+### 2026-07-13 — Manager, reports & notifications (B6–B8)
+- **Approvals**: list (+ pending filter), approve/reject/bulk-approve, and an audit trail.
+  Decisions write an `AuditLogEntry` and notify the employee.
+- **Team**: utilization, missing timesheets, top performers.
+- **Dashboards**: employee (today/week hours, billable %, pending weeks) and manager
+  (pending approvals, missing, utilization, projects at risk) aggregates.
+- **Reports**: budget/spend, est-vs-actual, client billing, billable split, avg utilization.
+- **Notifications**: list with unread count + relative labels, mark-all-read.
+- Global error handling via RFC-9457 `ProblemDetails`; `AppRoles` moved to Domain so the
+  Application layer no longer reaches into Infrastructure.
+- Added xUnit tests for formatting/label mapping (8 passing).
+- All endpoints verified live against SQL Server.
 
 ### 2026-07-12 — Initial backend (B0–B5)
 - Scaffolded the 4-project Clean Architecture solution (.NET 10) + xUnit test project.
