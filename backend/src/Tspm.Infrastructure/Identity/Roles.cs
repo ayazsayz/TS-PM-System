@@ -1,10 +1,13 @@
+using Tspm.Domain.Common;
+
 namespace Tspm.Infrastructure.Identity;
 
+/// <summary>Infrastructure-facing alias of the canonical <see cref="AppRoles"/>.</summary>
 public static class Roles
 {
-    public const string Employee = "Employee";
-    public const string Manager = "Manager";
-    public const string Admin = "Admin";
+    public const string Employee = AppRoles.Employee;
+    public const string Manager = AppRoles.Manager;
+    public const string Admin = AppRoles.Admin;
 
-    public static readonly string[] All = [Employee, Manager, Admin];
+    public static readonly string[] All = AppRoles.All;
 }

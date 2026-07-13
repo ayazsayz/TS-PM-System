@@ -24,4 +24,13 @@ public static class DisplayNames
         TimesheetStatus.Rejected => "Rejected",
         _ => s.ToString(),
     };
+
+    public static string Severity(NotificationSeverity s) => s switch
+    {
+        NotificationSeverity.Info => "info",
+        NotificationSeverity.Success => "success",
+        NotificationSeverity.Warning => "warning",
+        NotificationSeverity.Danger => "danger",
+        _ => "info",
+    };
 }

@@ -24,6 +24,7 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 builder.Services.AddControllers(o => o.Filters.Add<ValidationFilter>());
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddProblemDetails();
 
 const string CorsPolicy = "Frontend";
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
@@ -55,6 +56,9 @@ var app = builder.Build();
 await SeedAsync(app);
 
 // ---- Pipeline ----
+app.UseExceptionHandler();
+app.UseStatusCodePages();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
