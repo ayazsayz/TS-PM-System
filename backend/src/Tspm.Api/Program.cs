@@ -83,12 +83,14 @@ return;
 static async Task SeedAsync(WebApplication app)
 {
     var connectionString = app.Configuration.GetConnectionString("DefaultConnection");
-    var seedEnabled = app.Configuration.GetValue("Seed:Enabled", true);
-    if (string.IsNullOrWhiteSpace(connectionString) || !seedEnabled)
+    if (string.IsNullOrWhiteSpace(connectionString))
     {
-        app.Logger.LogWarning("Seeding skipped: no connection string configured or seeding disabled.");
+        app.Logger.LogWarning("Migration/seeding skipped: no connection string configured.");
         return;
     }
+
+    var options = app.Configuration.GetSection(SeedOptions.SectionName).Get<SeedOptions>()
+                  ?? new SeedOptions();
 
     using var scope = app.Services.CreateScope();
     var sp = scope.ServiceProvider;
@@ -97,13 +99,16 @@ static async Task SeedAsync(WebApplication app)
         var db = sp.GetRequiredService<AppDbContext>();
         var users = sp.GetRequiredService<UserManager<ApplicationUser>>();
         var roles = sp.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
-        var demoPassword = app.Configuration.GetValue("Seed:DemoPassword", "Passw0rd!")!;
-        await DbInitializer.SeedAsync(db, users, roles, demoPassword);
-        app.Logger.LogInformation("Database migrated and seeded.");
+        await DbInitializer.SeedAsync(db, users, roles, options);
+        app.Logger.LogInformation(
+            "Database migrated. Seeding: {Mode}.",
+            !options.Enabled ? "disabled"
+                : options.DemoData ? "roles + admin + demo data"
+                : "roles + admin only (clean workspace)");
     }
     catch (Exception ex)
     {
-        app.Logger.LogError(ex, "Database seeding failed. Verify the connection string and that SQL Server is reachable.");
+        app.Logger.LogError(ex, "Database migration/seeding failed. Verify the connection string and that SQL Server is reachable.");
     }
 }
 

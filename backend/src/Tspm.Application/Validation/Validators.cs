@@ -1,10 +1,34 @@
 using FluentValidation;
 using Tspm.Application.Admin;
 using Tspm.Application.Auth;
+using Tspm.Application.Clients;
+using Tspm.Application.Projects;
 using Tspm.Application.Tasks;
 using Tspm.Application.TimeEntries;
 
 namespace Tspm.Application.Validation;
+
+public class UpsertClientRequestValidator : AbstractValidator<UpsertClientRequest>
+{
+    public UpsertClientRequestValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(120);
+    }
+}
+
+public class UpsertProjectRequestValidator : AbstractValidator<UpsertProjectRequest>
+{
+    public UpsertProjectRequestValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(160);
+        RuleFor(x => x.ClientId).NotEmpty().WithMessage("A client is required.");
+        RuleFor(x => x.EstimatedHours).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.Budget).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.HourlyRate).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.CompletionPct).InclusiveBetween(0, 100);
+        RuleFor(x => x.Warn).MaximumLength(256);
+    }
+}
 
 public class LoginRequestValidator : AbstractValidator<LoginRequest>
 {

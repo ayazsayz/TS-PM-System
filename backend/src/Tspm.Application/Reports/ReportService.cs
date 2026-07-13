@@ -30,25 +30,43 @@ public class ReportService : IReportService
         var projects = await _db.Projects
             .AsNoTracking()
             .Include(p => p.Client)
-            .Where(p => !p.IsInternal)
+            .Where(p => !p.IsInternal && !p.IsArchived)
             .ToListAsync();
 
+        // Actual hours (and therefore spend) come from real logged time.
+        var hoursByProject = await _db.TimeEntries
+            .AsNoTracking()
+            .GroupBy(e => e.ProjectId)
+            .Select(g => new { g.Key, Hours = g.Sum(e => e.Hours) })
+            .ToDictionaryAsync(x => x.Key, x => x.Hours);
+
+        decimal ActualOf(Guid projectId) =>
+            hoursByProject.TryGetValue(projectId, out var h) ? h : 0m;
+
         var totalBudget = projects.Sum(p => p.Budget);
-        var totalSpent = projects.Sum(p => p.Spent);
+        var totalSpent = projects.Sum(p => ActualOf(p.Id) * p.HourlyRate);
         var budgetUsedPct = totalBudget == 0 ? 0 : (int)Math.Round(totalSpent / totalBudget * 100);
 
         var estVsActual = projects
-            .OrderByDescending(p => p.ActualHours)
-            .Select(p => new EstVsActualDto(
-                p.Name,
-                p.EstimatedHours,
-                p.ActualHours,
-                p.EstimatedHours == 0 ? 0 : (int)Math.Round((double)p.ActualHours / p.EstimatedHours * 100)))
+            .OrderByDescending(p => ActualOf(p.Id))
+            .Select(p =>
+            {
+                var actual = ActualOf(p.Id);
+                return new EstVsActualDto(
+                    p.Name,
+                    p.EstimatedHours,
+                    (int)Math.Round(actual),
+                    p.EstimatedHours == 0 ? 0 : (int)Math.Round(actual / p.EstimatedHours * 100));
+            })
             .ToList();
 
         var clientBilling = projects
             .GroupBy(p => p.Client.Name)
-            .Select(g => new ClientBillingDto(g.Key, g.Sum(p => p.ActualHours), g.Sum(p => p.Spent), g.Count()))
+            .Select(g => new ClientBillingDto(
+                g.Key,
+                (int)Math.Round(g.Sum(p => ActualOf(p.Id))),
+                g.Sum(p => ActualOf(p.Id) * p.HourlyRate),
+                g.Count()))
             .OrderByDescending(c => c.Spend)
             .ToList();
 
@@ -66,7 +84,7 @@ public class ReportService : IReportService
             totalSpent,
             budgetUsedPct,
             projects.Sum(p => p.EstimatedHours),
-            projects.Sum(p => p.ActualHours),
+            (int)Math.Round(projects.Sum(p => ActualOf(p.Id))),
             avgUtil,
             new BillableSplitDto(billable, nonBillable, billablePct),
             estVsActual,

@@ -38,7 +38,7 @@ and user management are now backed by the real API.
 
 ```bash
 # 1. start the backend (separate terminal)
-cd backend/src/Tspm.Api && dotnet run     # → http://localhost:5080
+cd backend/src/Tspm.Api && dotnet run     # → http://localhost:5041
 
 # 2. start the frontend
 cd app
@@ -49,7 +49,7 @@ npm run dev
 The API base URL comes from `.env`:
 
 ```
-VITE_API_URL=http://localhost:5080
+VITE_API_URL=http://localhost:5041
 ```
 
 **Sign in** with a seeded account (all use password `Passw0rd!`):
