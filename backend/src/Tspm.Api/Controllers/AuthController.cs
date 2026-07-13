@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Tspm.Api.Filters;
 using Tspm.Application.Auth;
 using Tspm.Application.Common.Interfaces;
 
@@ -40,6 +41,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("logout")]
     [Authorize]
+    [AllowWhilePasswordChangeRequired]
     public async Task<IActionResult> Logout()
     {
         if (_currentUser.Id is { } id)
@@ -49,10 +51,25 @@ public class AuthController : ControllerBase
 
     [HttpGet("me")]
     [Authorize]
+    [AllowWhilePasswordChangeRequired]
     public async Task<ActionResult<CurrentUserDto>> Me()
     {
         if (_currentUser.Id is not { } id) return Unauthorized();
         var user = await _auth.GetCurrentUserAsync(id);
         return user is null ? Unauthorized() : Ok(user);
+    }
+
+    /// <summary>
+    /// Serves both the forced first-login change (while on a one-time password) and a
+    /// voluntary change. Returns fresh, unrestricted tokens on success.
+    /// </summary>
+    [HttpPost("change-password")]
+    [Authorize]
+    [AllowWhilePasswordChangeRequired]
+    public async Task<ActionResult<AuthResponse>> ChangePassword(ChangePasswordRequest request)
+    {
+        if (_currentUser.Id is not { } id) return Unauthorized();
+        var result = await _auth.ChangePasswordAsync(id, request);
+        return result is null ? Unauthorized() : Ok(result);
     }
 }

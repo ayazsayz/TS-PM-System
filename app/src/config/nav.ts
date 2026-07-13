@@ -14,6 +14,8 @@ export interface NavItem {
 export interface NavSection {
   heading: string;
   items: NavItem[];
+  /** When set, the section only renders for users holding this role. */
+  requiresRole?: string;
 }
 
 export const navSections: NavSection[] = [
@@ -32,6 +34,13 @@ export const navSections: NavSection[] = [
       { path: 'approvals', label: 'Approvals', icon: 'check-circle', title: 'Approvals', badge: true },
       { path: 'projects', label: 'Projects', icon: 'folder', title: 'Projects' },
       { path: 'reports', label: 'Reports', icon: 'bars', title: 'Reports' },
+    ],
+  },
+  {
+    heading: 'ADMIN',
+    requiresRole: 'Admin',
+    items: [
+      { path: 'admin/users', label: 'Users', icon: 'team', title: 'User Management' },
     ],
   },
 ];

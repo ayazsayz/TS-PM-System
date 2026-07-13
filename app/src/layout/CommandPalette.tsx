@@ -56,8 +56,8 @@ export function CommandPalette() {
       label: 'Sign out',
       hint: 'Action',
       glyph: '←',
-      run: () => {
-        logout();
+      run: async () => {
+        await logout();
         goto('login');
       },
     },

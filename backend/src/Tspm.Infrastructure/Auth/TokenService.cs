@@ -18,7 +18,8 @@ public class TokenService : ITokenService
         Guid userId,
         string email,
         string fullName,
-        IEnumerable<string> roles)
+        IEnumerable<string> roles,
+        bool mustChangePassword)
     {
         var expiresAt = DateTime.UtcNow.AddMinutes(_settings.AccessTokenMinutes);
 
@@ -31,6 +32,9 @@ public class TokenService : ITokenService
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
         claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
+
+        if (mustChangePassword)
+            claims.Add(new Claim(ITokenService.MustChangePasswordClaim, "true"));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.EffectiveSigningKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

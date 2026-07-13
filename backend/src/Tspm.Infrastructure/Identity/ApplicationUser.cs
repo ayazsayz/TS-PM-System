@@ -16,6 +16,15 @@ public class ApplicationUser : IdentityUser<Guid>
     public string AvatarColor { get; set; } = "#475467";
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// True while the user is still on an admin-issued one-time password. Until they
+    /// change it, their token is restricted to the change-password endpoint only.
+    /// </summary>
+    public bool MustChangePassword { get; set; }
+
+    public DateTime? LastLoginAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
     // Refresh-token rotation (hash stored, never the raw token).
     public string? RefreshTokenHash { get; set; }
     public DateTime? RefreshTokenExpiresAt { get; set; }

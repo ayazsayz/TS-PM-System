@@ -69,6 +69,7 @@ public static class DbInitializer
         new("tom", "tom.okafor@etech.io", "Tom Okafor", "TO", "Analyst", "Data", "#175CD3", [Identity.Roles.Employee]),
         new("amy", "amy.park@etech.io", "Amy Park", "AP", "Consultant", "Engineering", "#0E9384", [Identity.Roles.Employee]),
         new("dana", "dana.whitfield@etech.io", "Dana Whitfield", "DW", "Delivery Manager", "Delivery", "#B54708", [Identity.Roles.Manager]),
+        new("admin", "admin@etech.io", "Workspace Admin", "WA", "Administrator", "IT", "#161B26", [Identity.Roles.Admin]),
     ];
 
     private static async Task SeedUsersAsync(UserManager<ApplicationUser> userManager, string demoPassword)

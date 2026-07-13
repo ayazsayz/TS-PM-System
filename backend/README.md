@@ -76,6 +76,7 @@ All seeded users share the password **`Passw0rd!`** (configurable via `Seed:Demo
 
 | User | Email | Roles |
 | --- | --- | --- |
+| **Workspace Admin** | **`admin@etech.io`** | **Admin** — use this for user management |
 | Alex Morgan | `alex.morgan@etech.io` | Employee, Manager |
 | Sarah Chen, Marcus Webb, Priya Sharma, … | `first.last@etech.io` | Employee |
 | Dana Whitfield | `dana.whitfield@etech.io` | Manager |
@@ -157,6 +158,32 @@ Approving/rejecting updates the timesheet, writes an **audit-log entry**, and ra
 - `GET /api/notifications` (with unread count + relative "ago" labels)
 - `POST /api/notifications/mark-all-read`
 
+**User management** *(Admin only)*
+- `GET /api/admin/users?search=&role=&status=`
+- `GET /api/admin/users/{id}`
+- `POST /api/admin/users` → `{ user, oneTimePassword }` — **the password is returned once, never again**
+- `PUT /api/admin/users/{id}` (profile) · `PUT /api/admin/users/{id}/roles`
+- `PATCH /api/admin/users/{id}/status` (activate / deactivate)
+- `POST /api/admin/users/{id}/reset-password` → `{ oneTimePassword }`
+
+**Password change** (any signed-in user)
+- `POST /api/auth/change-password` — serves both the *forced* first-login change and a *voluntary* change
+
+### One-time-password flow (how it's enforced)
+1. An admin creates a user → the API generates a random OTP and sets `MustChangePassword`.
+2. The user logs in with the OTP. The access token carries a **`must_change_password` claim**
+   and the response sets `mustChangePassword: true`.
+3. `MustChangePasswordFilter` **403s every endpoint** except `change-password`, `me`, and
+   `logout` — so the OTP session **cannot be used to skip the change**.
+4. On successful change the flag clears and **fresh, unrestricted tokens** are issued.
+
+### Account safety guards
+- You cannot deactivate your **own** account or change your **own** roles.
+- The **last active administrator** cannot be demoted or deactivated.
+- Deactivated users are blocked at login; deactivation is **soft** (timesheets, approvals, and
+  audit history are preserved).
+- Resetting a password invalidates the user's existing refresh token.
+
 ### Notes on derived data
 - **Employee dashboard** uses the user's *most recently logged day* as its reference day, so the
   seeded demo data stays meaningful (rather than showing zeros for the real calendar date).
@@ -188,6 +215,19 @@ dotnet test  Tspm.slnx
 ## Changelog
 
 Newest first.
+
+### 2026-07-13 — User management + one-time-password first login
+- `ApplicationUser`: added `MustChangePassword`, `LastLoginAt`, `CreatedAt` (+ migration).
+- Seeded a dedicated **`admin@etech.io`** (Admin) — previously no user held the Admin role.
+- **Admin user management**: list/search/filter, create (with generated one-time password),
+  update profile, set roles, activate/deactivate (soft), reset password.
+- **Forced password change**: OTP logins get a restricted token (`must_change_password` claim);
+  `MustChangePasswordFilter` 403s all endpoints except change-password/me/logout.
+- `POST /api/auth/change-password` serves both forced and voluntary changes.
+- Login now blocks deactivated accounts and records `LastLoginAt`.
+- Safety guards: no self-deactivation, no self-role-change, last-admin protection.
+- `AppException` → 4xx ProblemDetails via `AppExceptionHandler`.
+- Added `PasswordGenerator` (crypto-random, policy-compliant, no ambiguous chars) + tests.
 
 ### 2026-07-13 — Manager, reports & notifications (B6–B8)
 - **Approvals**: list (+ pending filter), approve/reject/bulk-approve, and an audit trail.

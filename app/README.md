@@ -33,16 +33,31 @@ output matches the mockup exactly.
 ## Quick start
 
 **Prerequisites:** Node.js (recommended **20.19+** or **22.12+** for Vite 8; it also runs on
-20.15 with a warning).
+20.15 with a warning), **and the backend API running** (see [`../backend`](../backend)) — auth
+and user management are now backed by the real API.
 
 ```bash
+# 1. start the backend (separate terminal)
+cd backend/src/Tspm.Api && dotnet run     # → http://localhost:5080
+
+# 2. start the frontend
 cd app
 npm install
-npm run dev      # start the dev server (prints a localhost URL)
+npm run dev
 ```
 
-Then **Sign in** on the login screen (auth is simulated — any click signs you in) to reach
-the app.
+The API base URL comes from `.env`:
+
+```
+VITE_API_URL=http://localhost:5080
+```
+
+**Sign in** with a seeded account (all use password `Passw0rd!`):
+
+| Purpose | Email |
+| --- | --- |
+| Admin (user management) | `admin@etech.io` |
+| Employee + Manager | `alex.morgan@etech.io` |
 
 **Other scripts**
 
@@ -114,19 +129,39 @@ Path alias: `@/` → `src/` (configured in `vite.config.ts` and `tsconfig.app.js
 
 ## Screens
 
-| Route | Screen | Role |
-| --- | --- | --- |
-| `/login` | Login (split hero + SSO/email) | All |
-| `/dashboard` | Employee Dashboard | IC |
-| `/daily` | Daily Timesheet Entry | IC |
-| `/weekly` | Weekly Timesheet | IC |
-| `/team` | Team Overview | Manager |
-| `/approvals` | Approvals | Manager |
-| `/projects` | Projects | Manager |
-| `/reports` | Reports | Manager / Exec |
+| Route | Screen | Role | Data source |
+| --- | --- | --- | --- |
+| `/login` | Login (split hero + SSO/email) | All | **API** |
+| `/change-password` | Set / change password | All | **API** |
+| `/dashboard` | Employee Dashboard | IC | mock |
+| `/daily` | Daily Timesheet Entry | IC | mock |
+| `/weekly` | Weekly Timesheet | IC | mock |
+| `/team` | Team Overview | Manager | mock |
+| `/approvals` | Approvals | Manager | mock |
+| `/projects` | Projects | Manager | mock |
+| `/reports` | Reports | Manager / Exec | mock |
+| `/admin/users` | **User Management** | **Admin** | **API** |
 
-All numbers are **derived live** from the store (e.g. editing a weekly cell recomputes row,
-day, week totals and the completion %).
+Timesheet numbers are **derived live** from the store (e.g. editing a weekly cell recomputes
+row, day, week totals and the completion %).
+
+> **Migration in progress:** auth and user management are wired to the real API. The remaining
+> screens still read `lib/mockData.ts` — wiring them up is the next step.
+
+## Authentication
+
+- Real JWT auth against the backend. Tokens are persisted in `localStorage`
+  (`lib/apiClient.ts`), and a **401 transparently refreshes and retries** the request once.
+- `useAuthStore` exposes `login`, `changePassword`, `logout`, `restore` (session rehydrate on
+  boot) and `hasRole()`.
+- **Role-gated UI:** the sidebar's `ADMIN` section and the `/admin/*` routes only render for
+  users holding the `Admin` role.
+
+### One-time-password first login
+An admin creates a user and is shown a **one-time password exactly once**. When that user signs
+in, they're pinned to `/change-password` — the router guard blocks every other route, and the
+backend independently 403s any other API call until the password is changed. Once changed, they
+land on the dashboard with normal access.
 
 ---
 
@@ -196,6 +231,20 @@ has the same constraints):
 ## Changelog
 
 Newest first. Update this on every meaningful change.
+
+### 2026-07-13 — Real auth + user management
+- **Replaced simulated auth with the real API.** Added `lib/apiClient.ts` (bearer token,
+  401→refresh→retry, ProblemDetails parsing) and `services/authService.ts` + `usersService.ts`.
+- `useAuthStore` rewritten: real login, token persistence, session restore, `hasRole()`.
+- Login page now takes real credentials with error + loading states.
+- **New `/change-password`** screen with a live password-rules checklist. Serves both the forced
+  first-login change (one-time password) and voluntary changes.
+- **Router guards:** a user on a one-time password is pinned to `/change-password`; `/admin/*`
+  is Admin-only.
+- **New `/admin/users`** — user management: searchable/filterable table, add user (reveals the
+  one-time password once, with copy), edit profile + roles, reset password, activate/deactivate.
+- Sidebar gained a role-gated **ADMIN** section.
+- New `Modal` primitive.
 
 ### 2026-07-12 — Initial build
 - Scaffolded Vite + React 19 + TypeScript; added React Router + Zustand.

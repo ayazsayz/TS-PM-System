@@ -1,7 +1,8 @@
+import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '@/components';
 import { brand } from '@/config/brand';
-import { currentUser } from '@/config/brand';
+import { ApiError } from '@/lib/apiClient';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUiStore } from '@/store/useUiStore';
 
@@ -13,11 +14,32 @@ export default function LoginPage() {
   const theme = useUiStore((s) => s.theme);
   const toggleTheme = useUiStore((s) => s.toggleTheme);
 
-  const doLogin = () => {
-    login();
-    showToast('Welcome back, Alex');
-    navigate('/dashboard');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const doLogin = async (e?: FormEvent) => {
+    e?.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      await login(email, password);
+      // A user still on a one-time password is forced to change it first.
+      if (useAuthStore.getState().mustChangePassword) {
+        navigate('/change-password');
+        return;
+      }
+      showToast(`Welcome back, ${useAuthStore.getState().user?.fullName.split(' ')[0] ?? ''}`);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Sign in failed. Please try again.');
+    } finally {
+      setBusy(false);
+    }
   };
+
+  const ssoUnavailable = () => setError('SSO is not configured yet — sign in with your email.');
 
   return (
     <div
@@ -198,11 +220,11 @@ export default function LoginPage() {
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-            <button onClick={doLogin} style={ssoBtn}>
+            <button type="button" onClick={ssoUnavailable} style={ssoBtn}>
               <Icon name="microsoft" size={16} />
               Continue with Microsoft
             </button>
-            <button onClick={doLogin} style={ssoBtn}>
+            <button type="button" onClick={ssoUnavailable} style={ssoBtn}>
               <Icon name="shield" size={15} />
               Single sign-on (SSO)
             </button>
@@ -216,42 +238,61 @@ export default function LoginPage() {
             <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
           </div>
 
-          <form
-            style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
-            onSubmit={(e) => {
-              e.preventDefault();
-              doLogin();
-            }}
-          >
+          {error && (
+            <div
+              role="alert"
+              style={{
+                background: 'var(--red-soft)',
+                color: 'var(--red)',
+                border: '1px solid var(--red)',
+                borderRadius: 9,
+                padding: '10px 12px',
+                fontSize: 13,
+                fontWeight: 500,
+                marginBottom: 14,
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+          <form style={{ display: 'flex', flexDirection: 'column', gap: 14 }} onSubmit={doLogin}>
             <div>
-              <label style={fieldLabel}>Work email</label>
-              <input type="email" defaultValue={currentUser.email} style={field} />
+              <label style={fieldLabel} htmlFor="email">
+                Work email
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                autoComplete="username"
+                placeholder="you@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={field}
+              />
             </div>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                <label style={{ ...fieldLabel, marginBottom: 0 }}>Password</label>
+                <label style={{ ...fieldLabel, marginBottom: 0 }} htmlFor="password">
+                  Password
+                </label>
                 <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--accent-text)', cursor: 'pointer' }}>
                   Forgot password?
                 </span>
               </div>
-              <input type="password" defaultValue="••••••••••" style={field} />
+              <input
+                id="password"
+                type="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={field}
+              />
             </div>
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 13,
-                color: 'var(--text2)',
-                cursor: 'pointer',
-                userSelect: 'none',
-              }}
-            >
-              <input type="checkbox" defaultChecked style={{ width: 15, height: 15, accentColor: 'var(--accent)' }} />
-              Keep me signed in for 30 days
-            </label>
-            <button type="submit" style={primaryBtn}>
-              Sign in
+            <button type="submit" disabled={busy} style={{ ...primaryBtn, opacity: busy ? 0.7 : 1 }}>
+              {busy ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
 

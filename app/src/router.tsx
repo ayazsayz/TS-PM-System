@@ -1,7 +1,8 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom';
 import { AppShell } from '@/layout/AppShell';
 import { useAuthStore } from '@/store/useAuthStore';
 import LoginPage from '@/features/auth/LoginPage';
+import ChangePasswordPage from '@/features/auth/ChangePasswordPage';
 import DashboardPage from '@/features/dashboard/DashboardPage';
 import DailyEntryPage from '@/features/daily/DailyEntryPage';
 import WeeklyTimesheetPage from '@/features/weekly/WeeklyTimesheetPage';
@@ -9,23 +10,66 @@ import ManagerDashboardPage from '@/features/manager/ManagerDashboardPage';
 import ApprovalsPage from '@/features/approvals/ApprovalsPage';
 import ProjectsPage from '@/features/projects/ProjectsPage';
 import ReportsPage from '@/features/reports/ReportsPage';
+import UsersPage from '@/features/admin/UsersPage';
 
-/** Guards the app shell: unauthenticated users bounce to /login. */
+/** Full-page spinner while the session is being restored from a stored token. */
+function Loading() {
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'var(--text3)',
+        fontSize: 14,
+        background: 'var(--bg)',
+      }}
+    >
+      Loading…
+    </div>
+  );
+}
+
+/**
+ * Guards the app shell. A user still on a one-time password is pinned to
+ * /change-password and cannot reach any other route.
+ */
 function ProtectedShell() {
-  const isAuthed = useAuthStore((s) => s.isAuthed);
+  const { isAuthed, mustChangePassword, loading } = useAuthStore();
+  if (loading) return <Loading />;
   if (!isAuthed) return <Navigate to="/login" replace />;
+  if (mustChangePassword) return <Navigate to="/change-password" replace />;
   return <AppShell />;
 }
 
-/** Redirects already-authed users away from /login. */
+/** Admin-only routes. Non-admins are bounced to the dashboard. */
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const hasRole = useAuthStore((s) => s.hasRole);
+  if (!hasRole('Admin')) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
 function LoginRoute() {
-  const isAuthed = useAuthStore((s) => s.isAuthed);
+  const { isAuthed, mustChangePassword, loading } = useAuthStore();
+  if (loading) return <Loading />;
+  if (isAuthed && mustChangePassword) return <Navigate to="/change-password" replace />;
   if (isAuthed) return <Navigate to="/dashboard" replace />;
   return <LoginPage />;
 }
 
+/** Reachable while restricted (forced change) and when voluntarily changing. */
+function ChangePasswordRoute() {
+  const { isAuthed, loading } = useAuthStore();
+  const location = useLocation();
+  if (loading) return <Loading />;
+  if (!isAuthed) return <Navigate to="/login" replace state={{ from: location }} />;
+  return <ChangePasswordPage />;
+}
+
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginRoute /> },
+  { path: '/change-password', element: <ChangePasswordRoute /> },
   {
     path: '/',
     element: <ProtectedShell />,
@@ -38,6 +82,14 @@ export const router = createBrowserRouter([
       { path: 'approvals', element: <ApprovalsPage /> },
       { path: 'projects', element: <ProjectsPage /> },
       { path: 'reports', element: <ReportsPage /> },
+      {
+        path: 'admin/users',
+        element: (
+          <AdminRoute>
+            <UsersPage />
+          </AdminRoute>
+        ),
+      },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },
