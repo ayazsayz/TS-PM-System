@@ -46,3 +46,10 @@
   cursor: pointer;
   margin-left: 4px;
 }
+
+.empty {
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--text3);
+}

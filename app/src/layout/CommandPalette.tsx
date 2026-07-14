@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '@/components';
 import { useUiStore } from '@/store/useUiStore';
-import { useTimesheetStore } from '@/store/useTimesheetStore';
 import { useAuthStore } from '@/store/useAuthStore';
 
 interface PaletteAction {
@@ -17,7 +16,6 @@ export function CommandPalette() {
   const [query, setQuery] = useState('');
   const closePalette = useUiStore((s) => s.closePalette);
   const toggleTheme = useUiStore((s) => s.toggleTheme);
-  const submitWeek = useTimesheetStore((s) => s.submitWeek);
   const logout = useAuthStore((s) => s.logout);
 
   const goto = (path: string) => {
@@ -43,14 +41,12 @@ export function CommandPalette() {
       },
     },
     {
+      // Deliberately navigates rather than submitting — submitting locks the week,
+      // so it should be a deliberate click on the page, not a fuzzy palette match.
       label: 'Submit weekly timesheet',
-      hint: 'Action',
+      hint: 'Page',
       glyph: '↑',
-      run: () => {
-        submitWeek();
-        navigate('/weekly');
-        closePalette();
-      },
+      run: () => goto('weekly'),
     },
     {
       label: 'Sign out',

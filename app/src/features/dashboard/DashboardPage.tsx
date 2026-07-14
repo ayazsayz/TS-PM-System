@@ -1,29 +1,93 @@
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge, Button, Card, CardHeader, Icon, KpiCard, PageContainer, ProgressBar, Ring } from '@/components';
-import { projects } from '@/lib/mockData';
-import { DAY_HOURS, WEEK_HOURS, dayBarColor, fmtH, pct, sumCells, sumEntries } from '@/lib/calc';
+import { ApiError } from '@/lib/apiClient';
+import { projectsService, type MyProject } from '@/services/projectsService';
+import {
+  dashboardService,
+  tasksService,
+  type EmployeeDashboard,
+  type Task,
+} from '@/services/workspaceService';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useTimesheetStore } from '@/store/useTimesheetStore';
-import { HoursBarChart } from './HoursBarChart';
+import { useUiStore } from '@/store/useUiStore';
+
+const fmt = (n: number) => String(Number(n.toFixed(2)));
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const entriesByDay = useTimesheetStore((s) => s.entriesByDay);
-  const activeDay = useTimesheetStore((s) => s.activeDay);
-  const weekRows = useTimesheetStore((s) => s.weekRows);
-  const tasks = useTimesheetStore((s) => s.tasks);
-  const toggleTask = useTimesheetStore((s) => s.toggleTask);
+  const toast = useUiStore((s) => s.showToast);
 
-  const dayTotal = sumEntries(entriesByDay[activeDay] || []);
-  const weekTotal = weekRows.reduce((t, r) => t + sumCells(r.hours), 0);
-  const weekPct = Math.round(pct(weekTotal, WEEK_HOURS));
-  const weekRemaining = Math.max(0, WEEK_HOURS - weekTotal);
+  const [data, setData] = useState<EmployeeDashboard | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [projects, setProjects] = useState<MyProject[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [d, t, p] = await Promise.all([
+        dashboardService.employee(),
+        tasksService.list(),
+        projectsService.mine(),
+      ]);
+      setData(d);
+      setTasks(t);
+      setProjects(p);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not load your dashboard.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const toggleTask = async (id: string) => {
+    const prev = tasks;
+    setTasks((ts) => ts.map((t) => (t.id === id ? { ...t, done: !t.done } : t))); // optimistic
+    try {
+      const updated = await tasksService.toggle(id);
+      setTasks((ts) => ts.map((t) => (t.id === id ? updated : t)));
+    } catch (err) {
+      setTasks(prev);
+      toast(err instanceof ApiError ? err.message : 'Could not update the task.');
+    }
+  };
+
+  const firstName = user?.fullName.split(' ')[0] ?? 'there';
   const openTasks = tasks.filter((t) => !t.done).length;
+
+  if (loading) {
+    return (
+      <PageContainer>
+        <Card>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)' }}>Loading…</div>
+        </Card>
+      </PageContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageContainer>
+        <Card>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--red)' }}>{error}</div>
+        </Card>
+      </PageContainer>
+    );
+  }
+
+  const d = data!;
+  const hasActivity = d.weekHours > 0;
 
   return (
     <PageContainer>
-      {/* HEADER */}
       <div
         style={{
           display: 'flex',
@@ -36,11 +100,12 @@ export default function DashboardPage() {
       >
         <div>
           <h1 style={{ margin: '0 0 4px', fontSize: 23, fontWeight: 700, letterSpacing: '-0.02em' }}>
-            Good morning, {user?.fullName.split(' ')[0] ?? 'there'}
+            Welcome back, {firstName}
           </h1>
           <div style={{ fontSize: 13.5, color: 'var(--text3)' }}>
-            Friday, July 3 · Week 27 ·{' '}
-            <span style={{ color: 'var(--amber)', fontWeight: 600 }}>Timesheet due today, 6 PM</span>
+            {hasActivity
+              ? `Your latest activity · ${new Date(d.referenceDate).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}`
+              : 'No time logged yet — start by adding an entry.'}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -54,152 +119,158 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI ROW */}
+      {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 14 }}>
         <KpiCard
-          label="Today"
+          label="Latest day"
           value={
             <>
-              {fmtH(dayTotal)}
-              <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text3)' }}> / {DAY_HOURS}h</span>
+              {fmt(d.todayHours)}
+              <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text3)' }}> / {d.dayTarget}h</span>
             </>
           }
           footer={
-            <ProgressBar value={pct(dayTotal, DAY_HOURS)} color={dayBarColor(dayTotal)} height={5} style={{ marginTop: 2 }} />
+            <ProgressBar
+              value={Math.min(100, (d.todayHours / d.dayTarget) * 100)}
+              height={5}
+              style={{ marginTop: 2 }}
+            />
           }
         />
         <KpiCard
           label="This week"
           value={
             <>
-              {fmtH(weekTotal)}
-              <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text3)' }}> / {WEEK_HOURS}h</span>
+              {fmt(d.weekHours)}
+              <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text3)' }}> / {d.weekTarget}h</span>
             </>
           }
-          footer={<ProgressBar value={pct(weekTotal, WEEK_HOURS)} height={5} style={{ marginTop: 2 }} />}
+          footer={<ProgressBar value={d.weekPercent} height={5} style={{ marginTop: 2 }} />}
         />
         <KpiCard
           label="Billable ratio"
-          value="78%"
-          footer={<div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>▲ 4% vs last week</div>}
+          value={`${d.billablePercent}%`}
+          footer={
+            <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+              {hasActivity ? 'of hours logged this week' : 'no hours yet'}
+            </div>
+          }
         />
         <KpiCard
           label="Pending submission"
           value={
             <>
-              1<span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text3)' }}> week</span>
+              {d.pendingWeeks}
+              <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text3)' }}>
+                {' '}
+                {d.pendingWeeks === 1 ? 'week' : 'weeks'}
+              </span>
             </>
           }
+          valueColor={d.pendingWeeks > 0 ? 'var(--amber)' : undefined}
           footer={
-            <div
-              onClick={() => navigate('/weekly')}
-              style={{ fontSize: 12, color: 'var(--accent-text)', fontWeight: 600, cursor: 'pointer' }}
-            >
-              Submit now →
-            </div>
+            d.pendingWeeks > 0 ? (
+              <div
+                onClick={() => navigate('/weekly')}
+                style={{ fontSize: 12, color: 'var(--accent-text)', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Submit now →
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, color: 'var(--text3)' }}>All caught up</div>
+            )
           }
         />
       </div>
 
-      {/* MAIN GRID */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.9fr 1fr', gap: 14, alignItems: 'start' }}>
-        {/* LEFT */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <Card>
-            <CardHeader
-              title="Hours this week"
-              action={
-                <div style={{ display: 'flex', gap: 14, fontSize: 12, color: 'var(--text3)' }}>
-                  <Legend color="var(--accent)" label="Billable" />
-                  <Legend color="var(--border2)" label="Non-billable" />
-                </div>
-              }
-            />
-            <HoursBarChart />
-          </Card>
+        {/* LEFT — tasks */}
+        <Card>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 650 }}>My tasks</div>
+            <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>{openTasks} open</div>
+          </div>
 
-          <Card>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <div style={{ fontSize: 14.5, fontWeight: 650 }}>My tasks</div>
-              <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>{openTasks} open</div>
+          {tasks.length === 0 && (
+            <div style={{ padding: '30px 0', textAlign: 'center', fontSize: 13, color: 'var(--text3)' }}>
+              No tasks yet.
             </div>
-            {tasks.map((t) => {
-              const proj = projects[t.p];
-              return (
+          )}
+
+          {tasks.map((t) => (
+            <div
+              key={t.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '11px 2px',
+                borderBottom: '1px solid var(--border)',
+              }}
+            >
+              <div
+                onClick={() => toggleTask(t.id)}
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: 6,
+                  border: `1.5px solid ${t.done ? 'var(--accent)' : 'var(--border2)'}`,
+                  background: t.done ? 'var(--accent)' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                {t.done && <Icon name="check" size={10} strokeWidth={2.6} style={{ color: '#fff' }} />}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div
-                  key={t.id}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '11px 2px',
-                    borderBottom: '1px solid var(--border)',
+                    fontSize: 13.5,
+                    fontWeight: 550,
+                    textDecoration: t.done ? 'line-through' : 'none',
+                    color: t.done ? 'var(--text3)' : 'var(--text)',
                   }}
                 >
-                  <div
-                    onClick={() => toggleTask(t.id)}
-                    style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: 6,
-                      border: `1.5px solid ${t.done ? 'var(--accent)' : 'var(--border2)'}`,
-                      background: t.done ? 'var(--accent)' : 'transparent',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {t.done && <Icon name="check" size={10} strokeWidth={2.6} style={{ color: '#fff' }} />}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: 13.5,
-                        fontWeight: 550,
-                        textDecoration: t.done ? 'line-through' : 'none',
-                        color: t.done ? 'var(--text3)' : 'var(--text)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {t.label}
-                    </div>
-                  </div>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      fontSize: 12,
-                      color: 'var(--text2)',
-                      background: 'var(--surface2)',
-                      borderRadius: 99,
-                      padding: '3px 10px',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    <span style={{ width: 7, height: 7, borderRadius: 99, background: proj.color }} />
-                    {proj.name.split(' ')[0]}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: t.urgent ? 'var(--red)' : t.done ? 'var(--text3)' : 'var(--text2)',
-                      fontWeight: 600,
-                      width: 72,
-                      textAlign: 'right',
-                    }}
-                  >
-                    {t.due}
-                  </span>
+                  {t.label}
                 </div>
-              );
-            })}
-          </Card>
-        </div>
+              </div>
+              {t.projectName && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: 12,
+                    color: 'var(--text2)',
+                    background: 'var(--surface2)',
+                    borderRadius: 99,
+                    padding: '3px 10px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <span
+                    style={{ width: 7, height: 7, borderRadius: 99, background: t.projectColor ?? '#475467' }}
+                  />
+                  {t.projectName.split(' ')[0]}
+                </span>
+              )}
+              <span
+                style={{
+                  fontSize: 12,
+                  color: t.urgent ? 'var(--red)' : 'var(--text2)',
+                  fontWeight: 600,
+                  width: 72,
+                  textAlign: 'right',
+                }}
+              >
+                {t.due ?? ''}
+              </span>
+            </div>
+          ))}
+        </Card>
 
         {/* RIGHT */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -207,22 +278,22 @@ export default function DashboardPage() {
             <div style={{ fontSize: 14.5, fontWeight: 650, alignSelf: 'flex-start', marginBottom: 14 }}>
               Weekly progress
             </div>
-            <Ring value={pct(weekTotal, WEEK_HOURS)}>
+            <Ring value={d.weekPercent}>
               <div className="tnum" style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em' }}>
-                {weekPct}%
+                {d.weekPercent}%
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>of {WEEK_HOURS}h</div>
+              <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>of {d.weekTarget}h</div>
             </Ring>
             <div style={{ display: 'flex', gap: 18, marginTop: 16, fontSize: 12.5, color: 'var(--text2)' }}>
               <span>
                 <strong className="tnum" style={{ color: 'var(--text)' }}>
-                  {fmtH(weekTotal)}h
+                  {fmt(d.weekHours)}h
                 </strong>{' '}
                 logged
               </span>
               <span>
                 <strong className="tnum" style={{ color: 'var(--text)' }}>
-                  {fmtH(weekRemaining)}h
+                  {fmt(Math.max(0, d.weekTarget - d.weekHours))}h
                 </strong>{' '}
                 remaining
               </span>
@@ -241,112 +312,43 @@ export default function DashboardPage() {
                 </div>
               }
             />
-            <ProjectRow color="#4757E6" name="Aurora Cloud Migration" meta="Nexbank · 18.5h this week" pct="72%" tone="green" />
-            <ProjectRow color="#7839EE" name="Orion Data Platform" meta="MedCore Health · 12h this week" pct="38%" tone="green" />
-            <ProjectRow color="#0E9384" name="Helios ERP Rollout" meta="Vertex Retail · 7h this week" pct="88%" tone="amber" last />
-          </Card>
-
-          <Card>
-            <div style={{ fontSize: 14.5, fontWeight: 650, marginBottom: 10 }}>Upcoming deadlines</div>
-            <Deadline mon="JUL" day="08" tone="red" name="Zephyr Portal Redesign" sub="Delayed · due in 5 days" subTone="red" />
-            <Deadline mon="JUL" day="10" tone="amber" name="Atlas Mobile Banking" sub="Go-live checkpoint" />
-            <Deadline mon="JUL" day="31" tone="neutral" name="Helios ERP Rollout" sub="Phase 2 delivery" last />
+            {projects.length === 0 && (
+              <div style={{ padding: '20px 0', textAlign: 'center', fontSize: 13, color: 'var(--text3)' }}>
+                You’re not assigned to any projects yet.
+              </div>
+            )}
+            {projects.map((p, i) => (
+              <div
+                key={p.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '10px 0',
+                  borderBottom: i < projects.length - 1 ? '1px solid var(--border)' : undefined,
+                }}
+              >
+                <span style={{ width: 9, height: 9, borderRadius: 3, background: p.colorHex, flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {p.name}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>{p.client}</div>
+                </div>
+                <Badge tone={p.completionPct >= 90 ? 'amber' : 'green'}>{p.completionPct}%</Badge>
+              </div>
+            ))}
           </Card>
         </div>
       </div>
     </PageContainer>
-  );
-}
-
-function Legend({ color, label }: { color: string; label: string }) {
-  return (
-    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ width: 9, height: 9, borderRadius: 3, background: color }} />
-      {label}
-    </span>
-  );
-}
-
-function ProjectRow({
-  color,
-  name,
-  meta,
-  pct,
-  tone,
-  last,
-}: {
-  color: string;
-  name: string;
-  meta: string;
-  pct: string;
-  tone: 'green' | 'amber';
-  last?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '10px 0',
-        borderBottom: last ? undefined : '1px solid var(--border)',
-      }}
-    >
-      <span style={{ width: 9, height: 9, borderRadius: 3, background: color, flexShrink: 0 }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {name}
-        </div>
-        <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>{meta}</div>
-      </div>
-      <Badge tone={tone}>{pct}</Badge>
-    </div>
-  );
-}
-
-function Deadline({
-  mon,
-  day,
-  tone,
-  name,
-  sub,
-  subTone,
-  last,
-}: {
-  mon: string;
-  day: string;
-  tone: 'red' | 'amber' | 'neutral';
-  name: string;
-  sub: string;
-  subTone?: 'red';
-  last?: boolean;
-}) {
-  const c =
-    tone === 'red'
-      ? { bg: 'var(--red-soft)', fg: 'var(--red)' }
-      : tone === 'amber'
-        ? { bg: 'var(--amber-soft)', fg: 'var(--amber)' }
-        : { bg: 'var(--surface2)', fg: 'var(--text2)' };
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '9px 0',
-        borderBottom: last ? undefined : '1px solid var(--border)',
-      }}
-    >
-      <div style={{ width: 40, textAlign: 'center', background: c.bg, borderRadius: 8, padding: '5px 0' }}>
-        <div style={{ fontSize: 9.5, fontWeight: 700, color: c.fg, letterSpacing: '0.05em' }}>{mon}</div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: c.fg, lineHeight: 1.1 }}>{day}</div>
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600 }}>{name}</div>
-        <div style={{ fontSize: 11.5, color: subTone === 'red' ? 'var(--red)' : 'var(--text3)', fontWeight: subTone ? 600 : 400 }}>
-          {sub}
-        </div>
-      </div>
-    </div>
   );
 }
