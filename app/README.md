@@ -33,8 +33,8 @@ output matches the mockup exactly.
 ## Quick start
 
 **Prerequisites:** Node.js (recommended **20.19+** or **22.12+** for Vite 8; it also runs on
-20.15 with a warning), **and the backend API running** (see [`../backend`](../backend)) — auth
-and user management are now backed by the real API.
+20.15 with a warning), **and the backend API running** (see [`../backend`](../backend)) — the
+app has no mock data, so every screen needs the API.
 
 ```bash
 # 1. start the backend (separate terminal)
@@ -52,12 +52,14 @@ The API base URL comes from `.env`:
 VITE_API_URL=http://localhost:5041
 ```
 
-**Sign in** with a seeded account (all use password `Passw0rd!`):
+**Sign in** with the bootstrap administrator — a fresh database contains nothing else:
 
-| Purpose | Email |
+| Email | Password |
 | --- | --- |
-| Admin (user management) | `admin@etech.io` |
-| Employee + Manager | `alex.morgan@etech.io` |
+| `admin@etech.io` | `Passw0rd!` |
+
+From there you create your own users, clients and projects in the app (see
+[Entering data](#entering-data)).
 
 **Other scripts**
 
@@ -93,18 +95,25 @@ app/
 │  │  └─ global.css           # reset, scrollbars, keyframes, helpers
 │  │
 │  ├─ lib/
-│  │  ├─ types.ts             # domain models (Project, TimeEntry, Task, WeekRow, Approval…)
-│  │  ├─ mockData.ts          # seed data (swap for an API later)
-│  │  └─ calc.ts              # derived math + status→badge-tone helpers
+│  │  ├─ apiClient.ts         # fetch wrapper: bearer token, 401→refresh→retry, ProblemDetails
+│  │  ├─ dates.ts             # Monday-first week maths for the timesheet grids
+│  │  └─ time.ts              # clock/duration parsing + hours auto-calculation
+│  │
+│  ├─ services/              # one module per API area (all typed)
+│  │  ├─ authService.ts       # login, change-password, me, logout
+│  │  ├─ usersService.ts      # admin user management
+│  │  ├─ projectsService.ts   # projects, clients, user directory
+│  │  ├─ timesheetService.ts  # time entries, weekly grid, submit, cell upsert
+│  │  └─ workspaceService.ts  # dashboards, tasks, team, approvals, reports, notifications
 │  │
 │  ├─ store/
 │  │  ├─ useUiStore.ts        # theme, accent, sidebar tone, density, panels, toast
-│  │  ├─ useAuthStore.ts      # simulated auth (route guard)
-│  │  └─ useTimesheetStore.ts # entries, weekly grid, tasks, approvals, projects filter
+│  │  ├─ useAuthStore.ts      # real auth: tokens, session restore, hasRole()
+│  │  └─ useWorkspaceStore.ts # live approvals badge + notification bell
 │  │
 │  ├─ components/             # reusable primitives
 │  │  ├─ Button, Card, Badge, ProgressBar, Ring, Avatar,
-│  │  ├─ KpiCard, Icon, Toast, PageContainer
+│  │  ├─ KpiCard, Icon, Toast, PageContainer, Modal
 │  │  └─ index.ts             # barrel export
 │  │
 │  ├─ layout/                 # app chrome
@@ -129,24 +138,46 @@ Path alias: `@/` → `src/` (configured in `vite.config.ts` and `tsconfig.app.js
 
 ## Screens
 
-| Route | Screen | Role | Data source |
-| --- | --- | --- | --- |
-| `/login` | Login (split hero + SSO/email) | All | **API** |
-| `/change-password` | Set / change password | All | **API** |
-| `/dashboard` | Employee Dashboard | IC | mock |
-| `/daily` | Daily Timesheet Entry | IC | mock |
-| `/weekly` | Weekly Timesheet | IC | mock |
-| `/team` | Team Overview | Manager | mock |
-| `/approvals` | Approvals | Manager | mock |
-| `/projects` | Projects | Manager | mock |
-| `/reports` | Reports | Manager / Exec | mock |
-| `/admin/users` | **User Management** | **Admin** | **API** |
+**Every screen reads the live API — the app ships no mock data.**
 
-Timesheet numbers are **derived live** from the store (e.g. editing a weekly cell recomputes
-row, day, week totals and the completion %).
+| Route | Screen | Role |
+| --- | --- | --- |
+| `/login` | Login (split hero + SSO/email) | All |
+| `/change-password` | Set / change password | All |
+| `/dashboard` | Employee Dashboard | All |
+| `/daily` | Daily Timesheet Entry | All |
+| `/weekly` | Weekly Timesheet | All |
+| `/projects` | Projects + Clients | view: All · manage: Manager/Admin |
+| `/team` | Team Overview | Manager/Admin |
+| `/approvals` | Approvals | Manager/Admin |
+| `/reports` | Reports | Manager/Admin |
+| `/admin/users` | User Management | Admin |
 
-> **Migration in progress:** auth and user management are wired to the real API. The remaining
-> screens still read `lib/mockData.ts` — wiring them up is the next step.
+Every screen has explicit **loading, error and empty** states, so a fresh workspace reads as
+intentional rather than broken.
+
+## Entering data
+
+A new workspace starts empty. The order that unblocks everything:
+
+1. **Admin → Users** — add people (each gets a one-time password).
+2. **Projects → Manage clients** — add a client.
+3. **Projects → New project** — set estimate, budget, **hourly rate**, and assign the team.
+4. **Daily Entry** / **Weekly Timesheet** — log time against that project.
+5. **Weekly → Submit** — the week locks and appears under **Approvals**.
+
+Spend, budget %, utilization and every report figure are **computed from logged time** —
+nothing is entered twice.
+
+### Logging hours
+Two interchangeable ways, per entry:
+- Type **hours** directly, or
+- fill in **start** and **end** (plus an optional **break**) and hours are calculated —
+  `09:00`–`17:00` less `0:30` = **7.5h**.
+
+The hours field is outlined in the accent colour when it was derived, and typing over it always
+wins. Times accept `9`, `9:30`, `09:00` or `0930`; breaks accept `0:30` or `30` (minutes).
+If the input is ambiguous (e.g. end ≤ start) it refuses to guess and leaves your hours alone.
 
 ## Authentication
 
@@ -175,13 +206,18 @@ onto `<html>`, so **dark mode and accent changes propagate automatically** to ev
 ### State
 - **`useUiStore`** — appearance (theme, accent, sidebar tone, density) + transient UI
   (command palette, notifications, tweaks panel, toast).
-- **`useAuthStore`** — simulated auth flag + current user; guards the app shell.
-- **`useTimesheetStore`** — all business data and mutations (entries, weekly grid, tasks,
-  approvals, project filter).
+- **`useAuthStore`** — real auth: tokens, session restore on boot, `hasRole()`.
+- **`useWorkspaceStore`** — cross-screen counters shown in the chrome (pending-approvals
+  badge, notification bell), refreshed by the screens that change them.
 
-### Data layer (mock → API-ready)
-`lib/mockData.ts` seeds the store. To wire a real backend later, replace the seed reads /
-mutations in `useTimesheetStore` with API calls — the component layer doesn't change.
+### Data layer
+There is **no client-side data store and no mock data**. Screens fetch from `services/*`
+through `lib/apiClient.ts` and own their loading/error/empty state. Derived figures
+(spend, budget %, utilization, billable split) are **computed server-side from logged
+time**, so the UI never recalculates business numbers.
+
+`apiClient` attaches the bearer token and, on a `401`, **transparently refreshes and retries
+the request once** before giving up.
 
 ---
 
@@ -217,13 +253,12 @@ the default palette, also update `defaultAccent` (or edit the accent options in
 
 ## Known limitations / future work
 
-These are intentionally **out of scope** for this UI port (the app matches the mockup, which
-has the same constraints):
-
-- **Auth is simulated** — no real session, backend, or RBAC. The service seam is ready.
 - **Desktop-first** — enforces a min width like the mockup; no mobile/responsive layouts yet.
 - **Accessibility** — custom checkboxes/toggles/palette are mouse-first; ARIA + keyboard
   hardening is future work.
+- **Reports omit revenue/margin** — those need a bill-rate vs. cost-rate split (a finance
+  module). Budget, spend, hours and utilization are reported today.
+- **No PDF/Excel export yet** — the export buttons from the mockup aren't wired.
 - **Node/Vite** — Vite 8 prefers Node 20.19+/22.12+; builds on 20.15 with a warning.
 
 ---
@@ -231,6 +266,26 @@ has the same constraints):
 ## Changelog
 
 Newest first. Update this on every meaningful change.
+
+### 2026-07-14 — Live data: every screen on the real API; all mock data deleted
+- **Deleted `lib/mockData.ts`, `store/useTimesheetStore.ts`, `lib/calc.ts`, `lib/types.ts`.**
+  The app no longer ships any mock data — every screen reads the database.
+- **Projects + Clients**: full management UI (create/edit project with client, colour,
+  estimate, budget, **hourly rate**, due date, health and team; archive; manage clients).
+- **Daily Entry**: real dates and day strip; add/edit/delete entries against real projects.
+  Hours can be typed directly **or auto-calculated from start/end minus break**
+  (`lib/time.ts`). Editing no longer refetches the grid — inputs are controlled and only the
+  edited row is saved, so typing is smooth and values never get clobbered.
+- **Weekly Timesheet**: real week navigation, cells upsert on blur, submit locks the week.
+- **Dashboard / Team / Approvals / Reports**: all live, including working approve / reject /
+  bulk-approve and a real audit trail.
+- **Notifications** + the sidebar **approvals badge** are live (`useWorkspaceStore`); the old
+  hardcoded "4" is gone.
+- Loading / error / **empty** states on every screen, so a fresh workspace reads as
+  intentional rather than broken.
+- Command palette's *Submit weekly timesheet* now **navigates** instead of submitting —
+  submitting locks the week, so it shouldn't fire from a fuzzy match.
+- New `Modal` primitive; `lib/dates.ts` for Monday-first week maths.
 
 ### 2026-07-13 — Real auth + user management
 - **Replaced simulated auth with the real API.** Added `lib/apiClient.ts` (bearer token,

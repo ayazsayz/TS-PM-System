@@ -71,15 +71,35 @@ dotnet run
 On startup the app **applies migrations and seeds** the demo data automatically (guarded — it
 skips if no connection string is configured). Swagger UI is served at the root in Development.
 
-### Demo credentials
-All seeded users share the password **`Passw0rd!`** (configurable via `Seed:DemoPassword`).
+### Seeding — the workspace starts empty
 
-| User | Email | Roles |
+A fresh database seeds **only the roles and one bootstrap administrator**, so you enter real
+data through the app. Roles + the admin are **always** created — otherwise an empty database
+would have no way to sign in and you'd be locked out.
+
+| Purpose | Email | Password |
 | --- | --- | --- |
-| **Workspace Admin** | **`admin@etech.io`** | **Admin** — use this for user management |
-| Alex Morgan | `alex.morgan@etech.io` | Employee, Manager |
-| Sarah Chen, Marcus Webb, Priya Sharma, … | `first.last@etech.io` | Employee |
-| Dana Whitfield | `dana.whitfield@etech.io` | Manager |
+| Bootstrap administrator | `admin@etech.io` | `Passw0rd!` |
+
+Everything else (people, clients, projects, time) you create in the UI: sign in as the admin,
+add users under **Admin → Users**, then add clients and projects under **Projects**.
+
+Seeding is controlled by the `Seed` section of `appsettings.json`:
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `Seed:Enabled` | `true` | Master switch. Migrations still run when `false`. |
+| `Seed:DemoData` | **`false`** | Set `true` to also seed the full demo dataset (9 people, 5 clients, 7 projects, timesheets). |
+| `Seed:AdminEmail` / `AdminName` / `AdminPassword` | `admin@etech.io` … | The bootstrap admin. |
+
+### Resetting to a clean slate
+
+```bash
+# drops the database; the next `dotnet run` recreates it and seeds roles + admin
+dotnet ef database drop -f --project src/Tspm.Infrastructure --startup-project src/Tspm.Infrastructure
+```
+> The design-time factory points at LocalDB, so if your connection string targets another
+> server, drop the database there instead (e.g. `DROP DATABASE TSPMDB;`).
 
 ---
 
@@ -117,9 +137,20 @@ system recomputes them from `TimeEntry` history). Current-week totals *are* deri
 **Auth**
 - `POST /api/auth/login`, `POST /api/auth/refresh`, `POST /api/auth/logout`, `GET /api/auth/me`
 
+**Clients**
+- `GET /api/clients` (`?includeArchived=true`) · `GET /api/clients/{id}`
+- `POST /api/clients` · `PUT /api/clients/{id}` · `PATCH /api/clients/{id}/archive`
+  · `DELETE /api/clients/{id}` *(Manager/Admin)*
+
 **Projects**
-- `GET /api/projects` (`?filter=all|running|at-risk|completed`)
+- `GET /api/projects` (`?filter=all|running|at-risk|completed`, `?includeArchived=true`)
 - `GET /api/projects/mine`, `GET /api/projects/{id}`
+- `POST /api/projects` · `PUT /api/projects/{id}` · `PATCH /api/projects/{id}/archive`
+  · `DELETE /api/projects/{id}` *(Manager/Admin)* — includes team assignment
+
+**Directory**
+- `GET /api/users` — lightweight list for pickers (any signed-in user). The full
+  admin list is Admin-only, but Managers need this to assign a project team.
 
 **Tasks**
 - `GET /api/tasks`, `POST /api/tasks`, `PATCH /api/tasks/{id}/toggle`, `PUT /api/tasks/{id}`, `DELETE /api/tasks/{id}`
@@ -132,6 +163,10 @@ system recomputes them from `TimeEntry` history). Current-week totals *are* deri
 **Timesheets (weekly)**
 - `GET /api/timesheets?weekStart=YYYY-MM-DD` (weekly grid derived from entries)
 - `POST /api/timesheets/submit?weekStart=YYYY-MM-DD`
+- `PUT /api/timesheets/cell?weekStart=YYYY-MM-DD` — upserts one cell of the grid.
+  The grid is an **aggregate** (project × task × day), so a cell has no single entry
+  id to `PUT`; this creates/updates/clears the underlying entries and returns the
+  recomputed week.
 
 **Approvals** *(Manager/Admin)*
 - `GET /api/approvals` (`?status=pending`)
@@ -185,11 +220,20 @@ Approving/rejecting updates the timesheet, writes an **audit-log entry**, and ra
 - Resetting a password invalidates the user's existing refresh token.
 
 ### Notes on derived data
-- **Employee dashboard** uses the user's *most recently logged day* as its reference day, so the
-  seeded demo data stays meaningful (rather than showing zeros for the real calendar date).
+- **Project actual hours and spend are computed, never stored.** Actual hours are summed live
+  from `TimeEntry`; spend is `actual hours × Project.HourlyRate`. Log 6h on a $150/h project
+  and it immediately reports 6h and $900 against budget.
+- **Employee dashboard** uses the user's *most recently logged day* as its reference day, so a
+  workspace stays meaningful rather than showing zeros whenever nothing was logged *today*.
 - **Team utilization** is derived from each employee's latest timesheet hours ÷ 40.
-- **Reports** intentionally omit revenue/cost/margin — those need billing-rate configuration
-  (a future finance module). Budget, spend, hours, and utilization are reported.
+- **Reports** intentionally omit revenue/margin — those need a bill-rate vs. cost-rate split
+  (a future finance module). Budget, spend, hours and utilization are reported.
+
+### Deletion vs. archiving
+Records that carry history are archived, not deleted:
+- A **client** with projects can't be deleted — archive it.
+- A **project** with logged time can't be deleted — archive it.
+- **Users** are deactivated (soft), never deleted.
 
 ---
 
@@ -215,6 +259,21 @@ dotnet test  Tspm.slnx
 ## Changelog
 
 Newest first.
+
+### 2026-07-14 — Live data: client/project CRUD, computed spend, clean-slate seeding
+- **Clients CRUD** and **Projects CRUD** (+ team assignment). Previously projects were
+  read-only and there was no clients endpoint at all — so there was no way to create the
+  data the app runs on.
+- **Project actual hours and spend are now computed from logged time**, not stored demo
+  values. Added `Project.HourlyRate`; spend = logged hours × rate. Reports aggregate the same way.
+  *(The migration explicitly drops `Spent`/`ActualHours` rather than letting EF rename `Spent`
+  → `HourlyRate`, which would have turned a $122,000 spend into a $122,000/hour rate.)*
+- `PUT /api/timesheets/cell` — upserts a cell of the weekly grid (the grid is an aggregate,
+  so a cell has no single entry id).
+- `GET /api/users` — lightweight directory for team pickers.
+- Archiving for clients and projects; deletion is blocked once history exists.
+- **Clean-slate seeding**: `Seed:DemoData` now defaults to `false`. Roles + the bootstrap
+  admin are always seeded so an empty database can never lock you out.
 
 ### 2026-07-13 — User management + one-time-password first login
 - `ApplicationUser`: added `MustChangePassword`, `LastLoginAt`, `CreatedAt` (+ migration).
