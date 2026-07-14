@@ -11,6 +11,7 @@ import {
   today,
   weekDates,
 } from '@/lib/dates';
+import { computeHours } from '@/lib/time';
 import { projectsService, type Project } from '@/services/projectsService';
 import { timeEntriesService, type TimeEntry } from '@/services/timesheetService';
 import { useUiStore } from '@/store/useUiStore';
@@ -22,15 +23,20 @@ const DAY_TARGET = 8;
 
 const fmt = (n: number) => String(Number(n.toFixed(2)));
 
+/** Fields the user can edit inline. */
+type EditableField = 'projectId' | 'task' | 'description' | 'start' | 'end' | 'break' | 'billable' | 'hours';
+
 export default function DailyEntryPage() {
   const toast = useUiStore((s) => s.showToast);
 
   const [date, setDate] = useState(today());
   const [entries, setEntries] = useState<TimeEntry[]>([]);
-  const [dayTotals, setDayTotals] = useState<Record<string, number>>({});
+  const [weekTotals, setWeekTotals] = useState<Record<string, number>>({});
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /** Ids currently being saved — drives the subtle row "saving" hint. */
+  const [saving, setSaving] = useState<Set<string>>(new Set());
 
   const days = weekDates(date);
 
@@ -47,10 +53,9 @@ export default function DailyEntryPage() {
       setEntries(dayEntries);
       setProjects(projs);
 
-      // Totals per day so the day strip can show each day's hours.
       const totals: Record<string, number> = {};
       for (const e of weekEntries) totals[e.date] = (totals[e.date] ?? 0) + e.hours;
-      setDayTotals(totals);
+      setWeekTotals(totals);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not load entries.');
     } finally {
@@ -65,7 +70,59 @@ export default function DailyEntryPage() {
   const fail = (err: unknown) =>
     toast(err instanceof ApiError ? err.message : 'Something went wrong.');
 
-  const dayTotal = entries.reduce((t, e) => t + e.hours, 0);
+  const dayTotal = entries.reduce((t, e) => t + (Number(e.hours) || 0), 0);
+
+  /** Local-only edit — keeps typing smooth, no network, no re-render of the grid. */
+  const editLocal = (id: string, field: EditableField, value: unknown) =>
+    setEntries((prev) =>
+      prev.map((e) => {
+        if (e.id !== id) return e;
+        const next = { ...e, [field]: value } as TimeEntry;
+
+        // Auto-calculate hours from start/end (minus break) when both are present.
+        // If they can't be derived, `hours` is left exactly as the user typed it.
+        if (field === 'start' || field === 'end' || field === 'break') {
+          const computed = computeHours(next.start, next.end, next.break);
+          if (computed !== null) next.hours = computed;
+        }
+        return next;
+      }),
+    );
+
+  /**
+   * Persist one entry. Updates only that row from the server response —
+   * deliberately does NOT call load(), which used to blank the whole grid
+   * on every keystroke-commit.
+   */
+  const save = async (id: string) => {
+    const entry = entries.find((e) => e.id === id);
+    if (!entry) return;
+
+    setSaving((s) => new Set(s).add(id));
+    try {
+      const saved = await timeEntriesService.update(id, {
+        projectId: entry.projectId,
+        date: entry.date,
+        task: entry.task,
+        description: entry.description,
+        start: entry.start,
+        end: entry.end,
+        break: entry.break,
+        billable: entry.billable,
+        hours: Number(entry.hours) || 0,
+      });
+      setEntries((prev) => prev.map((e) => (e.id === id ? saved : e)));
+    } catch (err) {
+      fail(err);
+      void load(); // fall back to server truth
+    } finally {
+      setSaving((s) => {
+        const n = new Set(s);
+        n.delete(id);
+        return n;
+      });
+    }
+  };
 
   const addEntry = async () => {
     if (projects.length === 0) {
@@ -73,48 +130,27 @@ export default function DailyEntryPage() {
       return;
     }
     try {
-      await timeEntriesService.create({
+      const created = await timeEntriesService.create({
         projectId: projects[0].id,
         date,
         task: '',
         billable: true,
         hours: 0,
       });
-      void load();
+      setEntries((prev) => [...prev, created]);
     } catch (err) {
       fail(err);
-    }
-  };
-
-  /** Persist a single field edit on an entry. */
-  const patch = async (entry: TimeEntry, changes: Partial<TimeEntry>) => {
-    const merged = { ...entry, ...changes };
-    setEntries((prev) => prev.map((e) => (e.id === entry.id ? merged : e))); // optimistic
-    try {
-      await timeEntriesService.update(entry.id, {
-        projectId: merged.projectId,
-        date: merged.date,
-        task: merged.task,
-        description: merged.description,
-        start: merged.start,
-        end: merged.end,
-        break: merged.break,
-        billable: merged.billable,
-        hours: Number(merged.hours) || 0,
-      });
-      void load();
-    } catch (err) {
-      fail(err);
-      void load(); // roll back to server truth
     }
   };
 
   const removeEntry = async (id: string) => {
+    const prev = entries;
+    setEntries((e) => e.filter((x) => x.id !== id)); // optimistic
     try {
       await timeEntriesService.remove(id);
-      void load();
     } catch (err) {
       fail(err);
+      setEntries(prev);
     }
   };
 
@@ -123,7 +159,7 @@ export default function DailyEntryPage() {
     try {
       const { copied } = await timeEntriesService.duplicateDay(from, date);
       toast(copied > 0 ? `Copied ${copied} entries from yesterday` : 'Nothing to copy from yesterday');
-      void load();
+      if (copied > 0) void load();
     } catch (err) {
       fail(err);
     }
@@ -145,7 +181,9 @@ export default function DailyEntryPage() {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>{longDay(date)}</h1>
-          <div className={styles.subtitle}>Log time against your projects</div>
+          <div className={styles.subtitle}>
+            Enter hours directly, or fill in start &amp; end and they’re calculated for you.
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <Button variant="secondary" onClick={duplicateYesterday}>
@@ -159,11 +197,12 @@ export default function DailyEntryPage() {
         </div>
       </div>
 
-      {/* DAY STRIP — real dates for the week containing the selected day */}
+      {/* DAY STRIP */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 8, marginBottom: 14 }}>
         {days.map((d, i) => {
           const active = d === date;
-          const tot = dayTotals[d] ?? 0;
+          // The selected day's total comes from live local state so it updates as you type.
+          const tot = active ? dayTotal : (weekTotals[d] ?? 0);
           const dot = active
             ? 'rgba(255,255,255,.72)'
             : tot >= DAY_TARGET
@@ -202,7 +241,7 @@ export default function DailyEntryPage() {
                   gap: 5,
                   fontSize: 11,
                   fontWeight: 600,
-                  color: active ? 'rgba(255,255,255,.72)' : tot > 0 ? 'var(--text3)' : 'var(--text3)',
+                  color: active ? 'rgba(255,255,255,.72)' : 'var(--text3)',
                 }}
               >
                 <span style={{ width: 6, height: 6, borderRadius: 99, background: dot }} />
@@ -281,107 +320,123 @@ export default function DailyEntryPage() {
 
         {!loading &&
           !error &&
-          entries.map((e) => (
-            <div
-              key={e.id}
-              className={styles.row}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: GRID,
-                alignItems: 'center',
-                padding: '4px 12px',
-                borderBottom: '1px solid var(--border)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px' }}>
-                <span
-                  style={{ width: 9, height: 9, borderRadius: 3, background: e.projectColor, flexShrink: 0 }}
-                />
-                <select
-                  className={styles.projectSelect}
-                  value={e.projectId}
-                  onChange={(ev) => patch(e, { projectId: ev.target.value })}
-                >
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <input
-                className={styles.cellInput}
-                defaultValue={e.task}
-                onBlur={(ev) => ev.target.value !== e.task && patch(e, { task: ev.target.value })}
-                placeholder="Task"
-              />
-              <input
-                className={styles.cellInput}
-                style={{ color: 'var(--text2)' }}
-                defaultValue={e.description ?? ''}
-                onBlur={(ev) =>
-                  ev.target.value !== (e.description ?? '') && patch(e, { description: ev.target.value })
-                }
-                placeholder="What did you work on?"
-              />
-              <input
-                className={styles.cellInput}
-                defaultValue={e.start ?? ''}
-                onBlur={(ev) => ev.target.value !== (e.start ?? '') && patch(e, { start: ev.target.value })}
-                placeholder="—"
-              />
-              <input
-                className={styles.cellInput}
-                defaultValue={e.end ?? ''}
-                onBlur={(ev) => ev.target.value !== (e.end ?? '') && patch(e, { end: ev.target.value })}
-                placeholder="—"
-              />
-              <input
-                className={styles.cellInput}
-                defaultValue={e.break ?? ''}
-                onBlur={(ev) => ev.target.value !== (e.break ?? '') && patch(e, { break: ev.target.value })}
-                placeholder="—"
-              />
-
-              <div style={{ padding: '0 8px' }}>
-                <span
-                  onClick={() => patch(e, { billable: !e.billable })}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    color: e.billable ? 'var(--green)' : 'var(--text3)',
-                    background: e.billable ? 'var(--green-soft)' : 'var(--surface2)',
-                    borderRadius: 99,
-                    padding: '4px 10px',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {e.billable ? 'Billable' : 'Non-bill.'}
-                </span>
-              </div>
-
-              <input
-                className={styles.hoursInput}
-                type="number"
-                step="0.25"
-                min="0"
-                defaultValue={e.hours}
-                onBlur={(ev) => {
-                  const v = Number(ev.target.value) || 0;
-                  if (v !== e.hours) patch(e, { hours: v });
+          entries.map((e) => {
+            const auto = computeHours(e.start, e.end, e.break) !== null;
+            return (
+              <div
+                key={e.id}
+                className={styles.row}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: GRID,
+                  alignItems: 'center',
+                  padding: '4px 12px',
+                  borderBottom: '1px solid var(--border)',
+                  opacity: saving.has(e.id) ? 0.65 : 1,
+                  transition: 'opacity 0.15s',
                 }}
-              />
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px' }}>
+                  <span
+                    style={{ width: 9, height: 9, borderRadius: 3, background: e.projectColor, flexShrink: 0 }}
+                  />
+                  <select
+                    className={styles.projectSelect}
+                    value={e.projectId}
+                    onChange={(ev) => {
+                      editLocal(e.id, 'projectId', ev.target.value);
+                      // selects have no "commit" moment — save immediately
+                      setTimeout(() => void save(e.id), 0);
+                    }}
+                  >
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className={styles.iconAction} title="Remove entry" onClick={() => removeEntry(e.id)}>
-                <Icon name="trash" size={12} />
+                <input
+                  className={styles.cellInput}
+                  value={e.task}
+                  onChange={(ev) => editLocal(e.id, 'task', ev.target.value)}
+                  onBlur={() => void save(e.id)}
+                  placeholder="Task"
+                />
+                <input
+                  className={styles.cellInput}
+                  style={{ color: 'var(--text2)' }}
+                  value={e.description ?? ''}
+                  onChange={(ev) => editLocal(e.id, 'description', ev.target.value)}
+                  onBlur={() => void save(e.id)}
+                  placeholder="What did you work on?"
+                />
+                <input
+                  className={styles.cellInput}
+                  value={e.start ?? ''}
+                  onChange={(ev) => editLocal(e.id, 'start', ev.target.value)}
+                  onBlur={() => void save(e.id)}
+                  placeholder="09:00"
+                />
+                <input
+                  className={styles.cellInput}
+                  value={e.end ?? ''}
+                  onChange={(ev) => editLocal(e.id, 'end', ev.target.value)}
+                  onBlur={() => void save(e.id)}
+                  placeholder="17:00"
+                />
+                <input
+                  className={styles.cellInput}
+                  value={e.break ?? ''}
+                  onChange={(ev) => editLocal(e.id, 'break', ev.target.value)}
+                  onBlur={() => void save(e.id)}
+                  placeholder="0:30"
+                  title="Break — e.g. 0:30 or 30 (minutes)"
+                />
+
+                <div style={{ padding: '0 8px' }}>
+                  <span
+                    onClick={() => {
+                      editLocal(e.id, 'billable', !e.billable);
+                      setTimeout(() => void save(e.id), 0);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: e.billable ? 'var(--green)' : 'var(--text3)',
+                      background: e.billable ? 'var(--green-soft)' : 'var(--surface2)',
+                      borderRadius: 99,
+                      padding: '4px 10px',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {e.billable ? 'Billable' : 'Non-bill.'}
+                  </span>
+                </div>
+
+                <input
+                  className={styles.hoursInput}
+                  type="number"
+                  step="0.25"
+                  min="0"
+                  value={e.hours}
+                  onChange={(ev) => editLocal(e.id, 'hours', ev.target.value === '' ? 0 : Number(ev.target.value))}
+                  onBlur={() => void save(e.id)}
+                  title={auto ? 'Calculated from start/end — you can still override it' : 'Hours'}
+                  style={auto ? { borderColor: 'var(--accent)' } : undefined}
+                />
+
+                <div className={styles.iconAction} title="Remove entry" onClick={() => removeEntry(e.id)}>
+                  <Icon name="trash" size={12} />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
         {!loading && !error && entries.length > 0 && (
           <div
