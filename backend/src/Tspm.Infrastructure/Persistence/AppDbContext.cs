@@ -47,7 +47,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
             e.Property(p => p.ColorHex).HasMaxLength(9);
             e.Property(p => p.WarnNote).HasMaxLength(256);
             e.Property(p => p.Budget).HasPrecision(18, 2);
-            e.Property(p => p.Spent).HasPrecision(18, 2);
+            e.Property(p => p.HourlyRate).HasPrecision(18, 2);
         });
 
         b.Entity<ProjectMember>(e =>

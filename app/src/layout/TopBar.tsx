@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Icon } from '@/components';
 import { titleByPath } from '@/config/nav';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUiStore } from '@/store/useUiStore';
+import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { NotificationPanel } from './NotificationPanel';
 import styles from './TopBar.module.css';
 
@@ -16,8 +18,14 @@ export function TopBar() {
   const toggleTweaks = useUiStore((s) => s.toggleTweaks);
   const toggleNotif = useUiStore((s) => s.toggleNotif);
   const notifOpen = useUiStore((s) => s.notifOpen);
-  const unread = useUiStore((s) => s.unread);
   const user = useAuthStore((s) => s.user);
+
+  const unread = useWorkspaceStore((s) => s.unread);
+  const refreshNotifications = useWorkspaceStore((s) => s.refreshNotifications);
+
+  useEffect(() => {
+    void refreshNotifications();
+  }, [refreshNotifications]);
 
   return (
     <header className={styles.topbar}>

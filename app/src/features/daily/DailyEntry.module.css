@@ -59,3 +59,28 @@
 .dayCell:hover {
   border-color: var(--accent) !important;
 }
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.title {
+  margin: 0 0 4px;
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.subtitle {
+  font-size: 13.5px;
+  color: var(--text3);
+}
+.empty {
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--text3);
+}

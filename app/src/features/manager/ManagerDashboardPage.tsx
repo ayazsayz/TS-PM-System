@@ -1,46 +1,89 @@
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Badge, Button, Card, CardHeader, KpiCard, PageContainer } from '@/components';
-import { avatarColors } from '@/lib/mockData';
-import { fmtH } from '@/lib/calc';
-import { selectPendingCount, useTimesheetStore } from '@/store/useTimesheetStore';
-import { useUiStore } from '@/store/useUiStore';
+import { Badge, Button, Card, CardHeader, KpiCard, PageContainer, type Tone } from '@/components';
+import { ApiError } from '@/lib/apiClient';
+import { projectsService, type Project } from '@/services/projectsService';
+import {
+  dashboardService,
+  teamService,
+  type ManagerDashboard,
+  type MissingTimesheet,
+  type TopPerformer,
+  type Utilization,
+} from '@/services/workspaceService';
 
-const utilization: [string, number, string][] = [
-  ['Sarah Chen', 98, 'var(--green)'],
-  ['Priya Sharma', 95, 'var(--green)'],
-  ['Alex Morgan', 92, 'var(--green)'],
-  ['Lena Fischer', 88, 'var(--green)'],
-  ['Diego Ruiz', 76, 'var(--amber)'],
-  ['Marcus Webb', 71, 'var(--amber)'],
-  ['Tom Okafor', 54, 'var(--red)'],
-];
+const fmt = (n: number) => String(Number(n.toFixed(2)));
 
-const health: [string, string, string, string, 'red' | 'amber' | 'green', string][] = [
-  ['#B54708', 'Atlas Mobile Banking', '900h / 1010h', '109%', 'red', 'Over budget'],
-  ['#C11574', 'Zephyr Portal Redesign', '480h / 495h', '95%', 'red', 'Delayed'],
-  ['#0E9384', 'Helios ERP Rollout', '2400h / 2310h', '95%', 'amber', 'At risk'],
-  ['#4757E6', 'Aurora Cloud Migration', '1200h / 860h', '68%', 'green', 'On track'],
-];
+const utilColor = (pct: number) =>
+  pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--amber)' : 'var(--red)';
 
-const missing = [
-  { name: 'Tom Okafor', dept: 'Data · 2 weeks overdue', initials: 'TO', sev: 'var(--red)' },
-  { name: 'Amy Park', dept: 'Engineering · due today', initials: 'AP', sev: 'var(--amber)' },
-  { name: 'Marcus Webb', dept: 'Engineering · this week', initials: 'MW', sev: 'var(--amber)' },
-];
-
-const performers: [string, string, string][] = [
-  ['1', 'Sarah Chen', 'SC'],
-  ['2', 'Priya Sharma', 'PS'],
-  ['3', 'Alex Morgan', 'AM'],
-];
-const performerUtil = ['98% util', '95% util', '92% util'];
+const healthTone: Record<string, Tone> = {
+  'On track': 'green',
+  'At risk': 'amber',
+  'Over budget': 'red',
+  Delayed: 'red',
+  Completed: 'neutral',
+};
 
 export default function ManagerDashboardPage() {
   const navigate = useNavigate();
-  const pending = useTimesheetStore(selectPendingCount);
-  const approvals = useTimesheetStore((s) => s.approvals);
-  const toast = useUiStore((s) => s.showToast);
-  const pendingHours = fmtH(approvals.filter((a) => a.status === 'Pending').reduce((t, a) => t + a.hours, 0));
+
+  const [data, setData] = useState<ManagerDashboard | null>(null);
+  const [utilization, setUtilization] = useState<Utilization[]>([]);
+  const [missing, setMissing] = useState<MissingTimesheet[]>([]);
+  const [performers, setPerformers] = useState<TopPerformer[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [d, u, m, p, projs] = await Promise.all([
+        dashboardService.manager(),
+        teamService.utilization(),
+        teamService.missing(),
+        teamService.topPerformers(),
+        projectsService.list(),
+      ]);
+      setData(d);
+      setUtilization(u);
+      setMissing(m);
+      setPerformers(p);
+      setProjects(projs);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not load the team overview.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  if (loading) {
+    return (
+      <PageContainer>
+        <Card>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)' }}>Loading…</div>
+        </Card>
+      </PageContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageContainer>
+        <Card>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--red)' }}>{error}</div>
+        </Card>
+      </PageContainer>
+    );
+  }
+
+  const d = data!;
 
   return (
     <PageContainer>
@@ -58,160 +101,260 @@ export default function ManagerDashboardPage() {
           <h1 style={{ margin: '0 0 4px', fontSize: 23, fontWeight: 700, letterSpacing: '-0.02em' }}>
             Team overview
           </h1>
-          <div style={{ fontSize: 13.5, color: 'var(--text3)' }}>Delivery · 8 people · Week 27</div>
+          <div style={{ fontSize: 13.5, color: 'var(--text3)' }}>
+            {utilization.length} {utilization.length === 1 ? 'person' : 'people'}
+          </div>
         </div>
-        <Button variant="primary" onClick={() => navigate('/approvals')}>
-          Review approvals ({pending})
-        </Button>
+        {d.pendingApprovals > 0 && (
+          <Button variant="primary" onClick={() => navigate('/approvals')}>
+            Review approvals ({d.pendingApprovals})
+          </Button>
+        )}
       </div>
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 14 }}>
         <KpiCard
           label="Pending approvals"
-          value={pending}
-          valueColor="var(--amber)"
+          value={d.pendingApprovals}
+          valueColor={d.pendingApprovals > 0 ? 'var(--amber)' : undefined}
           hoverable
           onClick={() => navigate('/approvals')}
-          footer={<div style={{ fontSize: 12, color: 'var(--text3)' }}>{pendingHours}h awaiting review</div>}
+          footer={
+            <div style={{ fontSize: 12, color: 'var(--text3)' }}>{fmt(d.pendingHours)}h awaiting review</div>
+          }
         />
         <KpiCard
           label="Missing timesheets"
-          value="3"
-          valueColor="var(--red)"
-          footer={<div style={{ fontSize: 12, color: 'var(--text3)' }}>1 escalated · 2 due today</div>}
+          value={d.missingTimesheets}
+          valueColor={d.missingTimesheets > 0 ? 'var(--red)' : undefined}
+          footer={<div style={{ fontSize: 12, color: 'var(--text3)' }}>for the latest submitted week</div>}
         />
         <KpiCard
           label="Team utilization"
-          value="87%"
-          footer={<div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>▲ 3% vs last week</div>}
+          value={`${d.teamUtilizationPercent}%`}
+          footer={<div style={{ fontSize: 12, color: 'var(--text3)' }}>average of logged weeks</div>}
         />
         <KpiCard
           label="Projects at risk"
-          value="3"
-          valueColor="var(--red)"
+          value={d.projectsAtRisk}
+          valueColor={d.projectsAtRisk > 0 ? 'var(--red)' : undefined}
           hoverable
           onClick={() => navigate('/projects')}
-          footer={<div style={{ fontSize: 12, color: 'var(--text3)' }}>1 over budget · 1 delayed · 1 near estimate</div>}
+          footer={<div style={{ fontSize: 12, color: 'var(--text3)' }}>at risk, delayed or over budget</div>}
         />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 14, alignItems: 'start' }}>
-        {/* LEFT */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* UTILIZATION */}
           <Card>
             <CardHeader
-              title="Team utilization · this week"
+              title="Team utilization"
               action={
                 <div style={{ display: 'flex', gap: 14, fontSize: 11.5, color: 'var(--text3)' }}>
-                  <LegendDot color="var(--green)" label="80–100%" />
-                  <LegendDot color="var(--amber)" label="60–80%" />
-                  <LegendDot color="var(--red)" label="<60%" />
+                  <Legend color="var(--green)" label="80–100%" />
+                  <Legend color="var(--amber)" label="60–80%" />
+                  <Legend color="var(--red)" label="<60%" />
                 </div>
               }
             />
+            {utilization.length === 0 && (
+              <div style={{ padding: '20px 0', textAlign: 'center', fontSize: 13, color: 'var(--text3)' }}>
+                No team members yet.
+              </div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {utilization.map(([name, val, color]) => (
-                <div key={name} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 46px', alignItems: 'center', gap: 12 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{name}</div>
+              {utilization.map((u) => (
+                <div
+                  key={u.userId}
+                  style={{ display: 'grid', gridTemplateColumns: '150px 1fr 46px', alignItems: 'center', gap: 12 }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{u.name}</div>
                   <div style={{ height: 9, borderRadius: 99, background: 'var(--surface2)', overflow: 'hidden' }}>
-                    <div style={{ width: `${val}%`, height: '100%', background: color, borderRadius: 99 }} />
+                    <div
+                      style={{
+                        width: `${Math.min(100, u.utilizationPercent)}%`,
+                        height: '100%',
+                        background: utilColor(u.utilizationPercent),
+                        borderRadius: 99,
+                      }}
+                    />
                   </div>
                   <div
                     className="tnum"
-                    style={{ fontSize: 12.5, fontWeight: 700, textAlign: 'right', color: val < 60 ? 'var(--red)' : 'var(--text)' }}
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      textAlign: 'right',
+                      color: u.utilizationPercent < 60 ? 'var(--red)' : 'var(--text)',
+                    }}
                   >
-                    {val}%
+                    {u.utilizationPercent}%
                   </div>
                 </div>
               ))}
             </div>
           </Card>
 
+          {/* PROJECT HEALTH */}
           <Card>
             <CardHeader
               title="Project health"
               action={
-                <div onClick={() => navigate('/projects')} style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--accent-text)', cursor: 'pointer' }}>
+                <div
+                  onClick={() => navigate('/projects')}
+                  style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--accent-text)', cursor: 'pointer' }}
+                >
                   All projects →
                 </div>
               }
             />
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 110px', padding: 8, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--text3)', borderBottom: '1px solid var(--border)' }}>
-              <div>PROJECT</div>
-              <div style={{ textAlign: 'right' }}>EST / ACTUAL</div>
-              <div style={{ textAlign: 'right' }}>BUDGET USED</div>
-              <div style={{ textAlign: 'right' }}>STATUS</div>
-            </div>
-            {health.map(([color, name, est, used, tone, label], i) => (
-              <div key={name} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 110px', alignItems: 'center', padding: '11px 8px', borderBottom: i < health.length - 1 ? '1px solid var(--border)' : undefined, fontSize: 13 }}>
+            {projects.length === 0 && (
+              <div style={{ padding: '20px 0', textAlign: 'center', fontSize: 13, color: 'var(--text3)' }}>
+                No projects yet.
+              </div>
+            )}
+            {projects.length > 0 && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1.5fr 1fr 1fr 110px',
+                  padding: 8,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: '0.06em',
+                  color: 'var(--text3)',
+                  borderBottom: '1px solid var(--border)',
+                }}
+              >
+                <div>PROJECT</div>
+                <div style={{ textAlign: 'right' }}>EST / ACTUAL</div>
+                <div style={{ textAlign: 'right' }}>BUDGET USED</div>
+                <div style={{ textAlign: 'right' }}>STATUS</div>
+              </div>
+            )}
+            {projects.map((p, i) => (
+              <div
+                key={p.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1.5fr 1fr 1fr 110px',
+                  alignItems: 'center',
+                  padding: '11px 8px',
+                  borderBottom: i < projects.length - 1 ? '1px solid var(--border)' : undefined,
+                  fontSize: 13,
+                }}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 3, background: color }} />
-                  {name}
+                  <span style={{ width: 8, height: 8, borderRadius: 3, background: p.colorHex }} />
+                  {p.name}
                 </div>
-                <div className="tnum" style={{ textAlign: 'right', color: tone === 'green' ? 'var(--text)' : `var(--${tone})`, fontWeight: tone === 'green' ? 400 : 600 }}>
-                  {est}
+                <div className="tnum" style={{ textAlign: 'right' }}>
+                  {p.estimatedHours}h / {fmt(p.actualHours)}h
                 </div>
-                <div className="tnum" style={{ textAlign: 'right', color: tone === 'red' ? 'var(--red)' : 'var(--text)', fontWeight: tone === 'red' ? 600 : 400 }}>
-                  {used}
+                <div
+                  className="tnum"
+                  style={{
+                    textAlign: 'right',
+                    color: p.budgetPercent > 100 ? 'var(--red)' : 'var(--text)',
+                    fontWeight: p.budgetPercent > 100 ? 600 : 400,
+                  }}
+                >
+                  {p.budgetPercent}%
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <Badge tone={tone}>{label}</Badge>
+                  <Badge tone={healthTone[p.health] ?? 'neutral'}>{p.health}</Badge>
                 </div>
               </div>
             ))}
           </Card>
         </div>
 
-        {/* RIGHT */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <Card>
             <div style={{ fontSize: 14.5, fontWeight: 650, marginBottom: 12 }}>Missing timesheets</div>
-            {missing.map((m) => (
-              <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ width: 30, height: 30, borderRadius: 99, background: avatarColors[m.initials] || '#475467', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+            {missing.length === 0 && (
+              <div style={{ fontSize: 13, color: 'var(--text3)' }}>Everyone is up to date. 🎉</div>
+            )}
+            {missing.map((m, i) => (
+              <div
+                key={m.userId}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '10px 0',
+                  borderBottom: i < missing.length - 1 ? '1px solid var(--border)' : undefined,
+                }}
+              >
+                <div
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 99,
+                    background: m.avatarColor,
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}
+                >
                   {m.initials}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{m.name}</div>
-                  <div style={{ fontSize: 11.5, color: m.sev, fontWeight: 600 }}>{m.dept}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>{m.department || '—'}</div>
                 </div>
-                <button
-                  onClick={() => toast(`Reminder sent to ${m.name}`)}
-                  style={{ padding: '6px 11px', borderRadius: 7, border: '1px solid var(--border2)', background: 'var(--surface)', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: 'var(--text2)', whiteSpace: 'nowrap' }}
-                >
-                  Remind
-                </button>
               </div>
             ))}
-            <div style={{ fontSize: 11.5, color: 'var(--text3)', paddingTop: 10 }}>
-              Auto-reminder fires Friday 6 PM, then escalates to PM → Dept Manager.
-            </div>
           </Card>
 
           <Card>
-            <div style={{ fontSize: 14.5, fontWeight: 650, marginBottom: 12 }}>Top performers · June</div>
-            {performers.map(([rank, name, initials], i) => (
-              <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: i < performers.length - 1 ? '1px solid var(--border)' : undefined }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text3)', width: 16 }}>{rank}</span>
-                <div style={{ width: 28, height: 28, borderRadius: 99, background: avatarColors[initials] || '#475467', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700 }}>
-                  {initials}
+            <div style={{ fontSize: 14.5, fontWeight: 650, marginBottom: 12 }}>Top performers</div>
+            {performers.length === 0 && (
+              <div style={{ fontSize: 13, color: 'var(--text3)' }}>No data yet.</div>
+            )}
+            {performers.map((p, i) => (
+              <div
+                key={p.rank}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '9px 0',
+                  borderBottom: i < performers.length - 1 ? '1px solid var(--border)' : undefined,
+                }}
+              >
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text3)', width: 16 }}>{p.rank}</span>
+                <div
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 99,
+                    background: p.avatarColor,
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                  }}
+                >
+                  {p.initials}
                 </div>
-                <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{name}</div>
-                <span className="tnum" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--green)' }}>
-                  {performerUtil[i]}
+                <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{p.name}</div>
+                <span
+                  className="tnum"
+                  style={{ fontSize: 12.5, fontWeight: 700, color: utilColor(p.utilizationPercent) }}
+                >
+                  {p.utilizationPercent}% util
                 </span>
               </div>
             ))}
-          </Card>
-
-          <Card>
-            <div style={{ fontSize: 14.5, fontWeight: 650, marginBottom: 12 }}>Recent activity</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 12.5, color: 'var(--text2)' }}>
-              <Activity name="Priya Sharma" text=" submitted 42h — flagged +2h overtime" meta="18 min ago" />
-              <Activity name="Atlas Mobile Banking" text=" crossed 100% of estimated hours" meta="25 min ago" />
-              <Activity name="Diego Ruiz" text=" submitted timesheet for Jun 22 – 28" meta="2 h ago" />
-            </div>
           </Card>
         </div>
       </div>
@@ -219,21 +362,11 @@ export default function ManagerDashboardPage() {
   );
 }
 
-function LegendDot({ color, label }: { color: string; label: string }) {
+function Legend({ color, label }: { color: string; label: string }) {
   return (
     <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
       <span style={{ width: 8, height: 8, borderRadius: 3, background: color }} />
       {label}
     </span>
-  );
-}
-
-function Activity({ name, text, meta }: { name: string; text: string; meta: string }) {
-  return (
-    <div>
-      <strong style={{ color: 'var(--text)' }}>{name}</strong>
-      {text}
-      <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{meta}</div>
-    </div>
   );
 }

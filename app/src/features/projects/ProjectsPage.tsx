@@ -1,172 +1,309 @@
-import { Badge, Card, Icon, PageContainer } from '@/components';
-import { avatarColors, projects } from '@/lib/mockData';
-import { budgetColor, healthTone } from '@/lib/calc';
-import type { Project } from '@/lib/types';
-import { useTimesheetStore } from '@/store/useTimesheetStore';
+import { useCallback, useEffect, useState } from 'react';
+import { Badge, Button, Card, Icon, PageContainer, type Tone } from '@/components';
+import { ApiError } from '@/lib/apiClient';
+import {
+  clientsService,
+  projectsService,
+  type Client,
+  type Project,
+  type ProjectHealth,
+} from '@/services/projectsService';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useUiStore } from '@/store/useUiStore';
+import { ProjectFormModal } from './ProjectFormModal';
+import { ClientsModal } from './ClientsModal';
+import styles from './Projects.module.css';
 
-const chips = ['All', 'Running', 'At risk', 'Completed'];
-const riskSet = ['At risk', 'Over budget', 'Delayed'];
+const FILTERS = ['All', 'Running', 'At risk', 'Completed'];
 
-function matches(p: Project, filter: string): boolean {
-  if (filter === 'All') return true;
-  if (filter === 'Running') return p.health !== 'Completed';
-  if (filter === 'At risk') return riskSet.includes(p.health);
-  return p.health === 'Completed';
-}
+const healthTone: Record<ProjectHealth, Tone> = {
+  'On track': 'green',
+  'At risk': 'amber',
+  'Over budget': 'red',
+  Delayed: 'red',
+  Completed: 'neutral',
+};
+
+const money = (n: number) =>
+  n >= 1000 ? `$${Math.round(n / 1000)}k` : `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+
+const hrs = (n: number) => `${Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 })}h`;
 
 export default function ProjectsPage() {
-  const projFilter = useTimesheetStore((s) => s.projFilter);
-  const setProjFilter = useTimesheetStore((s) => s.setProjFilter);
+  const toast = useUiStore((s) => s.showToast);
+  const hasRole = useAuthStore((s) => s.hasRole);
+  const canManage = hasRole('Manager') || hasRole('Admin');
 
-  // Exclude the internal "eTech" bucket, like the mockup.
-  const real = projects.filter((p) => p.client !== 'eTech');
-  const visible = real.filter((p) => matches(p, projFilter));
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [filter, setFilter] = useState('All');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<Project | null>(null);
+  const [showClients, setShowClients] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [p, c] = await Promise.all([projectsService.list(filter), clientsService.list()]);
+      setProjects(p);
+      setClients(c);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not load projects.');
+    } finally {
+      setLoading(false);
+    }
+  }, [filter]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const saved = (verb: string) => {
+    setShowForm(false);
+    setEditing(null);
+    toast(`Project ${verb}`);
+    void load();
+  };
+
+  const archive = async (p: Project) => {
+    try {
+      await projectsService.setArchived(p.id, true);
+      toast(`${p.name} archived`);
+      void load();
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : 'Could not archive project.');
+    }
+  };
+
+  const clientCount = new Set(projects.map((p) => p.clientId)).size;
 
   return (
     <PageContainer>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'space-between',
-          gap: 16,
-          marginBottom: 18,
-          flexWrap: 'wrap',
-        }}
-      >
+      <div className={styles.header}>
         <div>
-          <h1 style={{ margin: '0 0 4px', fontSize: 23, fontWeight: 700, letterSpacing: '-0.02em' }}>
-            Projects
-          </h1>
-          <div style={{ fontSize: 13.5, color: 'var(--text3)' }}>6 active engagements · 4 clients</div>
+          <h1 className={styles.title}>Projects</h1>
+          <div className={styles.subtitle}>
+            {projects.length} {projects.length === 1 ? 'project' : 'projects'} · {clientCount}{' '}
+            {clientCount === 1 ? 'client' : 'clients'}
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {chips.map((c) => {
-            const n = real.filter((p) => matches(p, c)).length;
-            const active = projFilter === c;
-            return (
-              <span
-                key={c}
-                onClick={() => setProjFilter(c)}
-                style={{
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  color: active ? 'var(--bg)' : 'var(--text2)',
-                  background: active ? 'var(--text)' : 'var(--surface)',
-                  border: `1px solid ${active ? 'var(--text)' : 'var(--border2)'}`,
-                  borderRadius: 99,
-                  padding: '7px 14px',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {c} · {n}
-              </span>
-            );
-          })}
-        </div>
+        {canManage && (
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Button variant="secondary" onClick={() => setShowClients(true)}>
+              Manage clients
+            </Button>
+            <Button variant="primary" onClick={() => setShowForm(true)}>
+              <Icon name="plus" size={13} />
+              New project
+            </Button>
+          </div>
+        )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(360px,1fr))', gap: 14 }}>
-        {visible.map((p) => (
-          <ProjectCard key={p.name} p={p} />
+      <div className={styles.chips}>
+        {FILTERS.map((f) => (
+          <span
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`${styles.chip} ${filter === f ? styles.chipActive : ''}`}
+          >
+            {f}
+          </span>
         ))}
       </div>
+
+      {loading && <Card><div className={styles.empty}>Loading projects…</div></Card>}
+
+      {!loading && error && (
+        <Card>
+          <div className={styles.empty} style={{ color: 'var(--red)' }}>
+            {error}
+          </div>
+        </Card>
+      )}
+
+      {/* Empty states differ: no projects at all vs. none matching the filter. */}
+      {!loading && !error && projects.length === 0 && (
+        <Card>
+          <div className={styles.empty}>
+            {filter !== 'All' ? (
+              <>No projects match “{filter}”.</>
+            ) : clients.length === 0 ? (
+              <>
+                <div className={styles.emptyTitle}>No clients yet</div>
+                <div style={{ marginBottom: 16 }}>
+                  Add a client first, then create your first project against it.
+                </div>
+                {canManage && (
+                  <Button variant="primary" onClick={() => setShowClients(true)}>
+                    Add a client
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                <div className={styles.emptyTitle}>No projects yet</div>
+                <div style={{ marginBottom: 16 }}>
+                  Create a project so your team can start logging time against it.
+                </div>
+                {canManage && (
+                  <Button variant="primary" onClick={() => setShowForm(true)}>
+                    <Icon name="plus" size={13} />
+                    New project
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {!loading && !error && projects.length > 0 && (
+        <div className={styles.grid}>
+          {projects.map((p) => (
+            <Card key={p.id} hoverable style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
+                <span className={styles.swatch} style={{ background: p.colorHex }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className={styles.projName}>{p.name}</div>
+                  <div className={styles.projMeta}>
+                    {p.client}
+                    {p.due ? ` · due ${p.due}` : ''}
+                  </div>
+                </div>
+                <Badge tone={healthTone[p.health]}>{p.health}</Badge>
+              </div>
+
+              <div>
+                <div className={styles.barLabel}>
+                  <span>Completion</span>
+                  <span className="tnum" style={{ fontWeight: 700, color: 'var(--text)' }}>
+                    {p.completionPct}%
+                  </span>
+                </div>
+                <div className={styles.track}>
+                  <div style={{ width: `${p.completionPct}%`, height: '100%', borderRadius: 99, background: p.colorHex }} />
+                </div>
+              </div>
+
+              <div className={styles.stats}>
+                <Stat label="ESTIMATED" value={hrs(p.estimatedHours)} />
+                <Stat label="ACTUAL" value={hrs(p.actualHours)} />
+                <Stat
+                  label="REMAINING"
+                  value={p.remainingHours >= 0 ? `${hrs(p.remainingHours)} left` : `${hrs(Math.abs(p.remainingHours))} over`}
+                  color={p.remainingHours >= 0 ? 'var(--text2)' : 'var(--red)'}
+                />
+              </div>
+
+              <div>
+                <div className={styles.barLabel}>
+                  <span>
+                    Budget · {money(p.spent)} of {money(p.budget)}
+                    {p.hourlyRate > 0 && ` · $${p.hourlyRate}/h`}
+                  </span>
+                  <span
+                    className="tnum"
+                    style={{
+                      fontWeight: 700,
+                      color:
+                        p.budgetPercent > 100
+                          ? 'var(--red)'
+                          : p.budgetPercent > 90
+                            ? 'var(--amber)'
+                            : 'var(--accent)',
+                    }}
+                  >
+                    {p.budgetPercent}%
+                  </span>
+                </div>
+                <div className={styles.track}>
+                  <div
+                    style={{
+                      width: `${Math.min(100, p.budgetPercent)}%`,
+                      height: '100%',
+                      borderRadius: 99,
+                      background:
+                        p.budgetPercent > 100
+                          ? 'var(--red)'
+                          : p.budgetPercent > 90
+                            ? 'var(--amber)'
+                            : 'var(--accent)',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
+                <div style={{ display: 'flex' }}>
+                  {p.team.length === 0 && <span className={styles.noTeam}>No team assigned</span>}
+                  {p.team.map((m, i) => (
+                    <div
+                      key={m.userId}
+                      title={m.fullName}
+                      className={styles.teamAvatar}
+                      style={{ background: m.avatarColor, marginLeft: i === 0 ? 0 : -6 }}
+                    >
+                      {m.initials}
+                    </div>
+                  ))}
+                </div>
+                {canManage && (
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button className={styles.linkBtn} onClick={() => setEditing(p)}>
+                      Edit
+                    </button>
+                    <button className={styles.linkBtn} onClick={() => archive(p)}>
+                      Archive
+                    </button>
+                  </div>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {(showForm || editing) && (
+        <ProjectFormModal
+          project={editing ?? undefined}
+          clients={clients}
+          onClose={() => {
+            setShowForm(false);
+            setEditing(null);
+          }}
+          onSaved={() => saved(editing ? 'updated' : 'created')}
+          onManageClients={() => {
+            setShowForm(false);
+            setEditing(null);
+            setShowClients(true);
+          }}
+        />
+      )}
+
+      {showClients && (
+        <ClientsModal
+          onClose={() => {
+            setShowClients(false);
+            void load();
+          }}
+        />
+      )}
     </PageContainer>
   );
 }
 
-function ProjectCard({ p }: { p: Project }) {
-  const rem = p.est - p.act;
-  const bpct = p.budget ? Math.round((p.spent / p.budget) * 100) : 0;
-  const bColor = budgetColor(bpct);
-
-  const statBox = (label: string, value: string, color?: string) => (
-    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px' }}>
-      <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text3)', letterSpacing: '0.05em', marginBottom: 3 }}>{label}</div>
+function Stat({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <div className={styles.stat}>
+      <div className={styles.statLabel}>{label}</div>
       <div className="tnum" style={{ fontSize: 14, fontWeight: 700, color }}>
         {value}
       </div>
     </div>
-  );
-
-  return (
-    <Card hoverable style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
-        <span style={{ width: 10, height: 10, borderRadius: 3, background: p.color, marginTop: 5, flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 650, letterSpacing: '-0.01em' }}>{p.name}</div>
-          <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>
-            {p.client} · due {p.due}
-          </div>
-        </div>
-        <Badge tone={healthTone(p.health)}>{p.health}</Badge>
-      </div>
-
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text3)', marginBottom: 6 }}>
-          <span>Completion</span>
-          <span className="tnum" style={{ fontWeight: 700, color: 'var(--text)' }}>
-            {p.completion}%
-          </span>
-        </div>
-        <div style={{ height: 7, borderRadius: 99, background: 'var(--surface2)', overflow: 'hidden' }}>
-          <div style={{ width: `${p.completion}%`, height: '100%', borderRadius: 99, background: p.color }} />
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-        {statBox('ESTIMATED', `${p.est}h`)}
-        {statBox('ACTUAL', `${p.act}h`)}
-        {statBox('REMAINING', rem >= 0 ? `${rem}h left` : `${Math.abs(rem)}h over`, rem >= 0 ? 'var(--text2)' : 'var(--red)')}
-      </div>
-
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text3)', marginBottom: 6 }}>
-          <span>
-            Budget · ${Math.round(p.spent / 1000)}k of ${Math.round(p.budget / 1000)}k
-          </span>
-          <span className="tnum" style={{ fontWeight: 700, color: bColor }}>
-            {bpct}%
-          </span>
-        </div>
-        <div style={{ height: 7, borderRadius: 99, background: 'var(--surface2)', overflow: 'hidden' }}>
-          <div style={{ width: `${Math.min(100, bpct)}%`, height: '100%', borderRadius: 99, background: bColor }} />
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
-        <div style={{ display: 'flex' }}>
-          {p.team.map((init, i) => (
-            <div
-              key={i}
-              style={{
-                width: 26,
-                height: 26,
-                borderRadius: 99,
-                background: avatarColors[init] || '#475467',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 9.5,
-                fontWeight: 700,
-                border: '2px solid var(--surface)',
-                marginLeft: i === 0 ? 0 : -6,
-              }}
-            >
-              {init}
-            </div>
-          ))}
-        </div>
-        {p.warn && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--red)' }}>
-            <Icon name="alert" size={12} />
-            {p.warn}
-          </span>
-        )}
-      </div>
-    </Card>
   );
 }

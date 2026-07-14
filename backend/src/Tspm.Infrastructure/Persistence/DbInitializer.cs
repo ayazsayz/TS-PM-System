@@ -26,12 +26,19 @@ public static class DbInitializer
         AppDbContext db,
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole<Guid>> roleManager,
-        string demoPassword)
+        SeedOptions options)
     {
         await db.Database.MigrateAsync();
+        if (!options.Enabled) return;
 
+        // Roles and the bootstrap admin are ALWAYS seeded — without them an empty
+        // database would have no way to sign in.
         await SeedRolesAsync(roleManager);
-        await SeedUsersAsync(userManager, demoPassword);
+        await SeedAdminAsync(userManager, options);
+
+        if (!options.DemoData) return;
+
+        await SeedDemoUsersAsync(userManager, options.DemoPassword);
 
         if (!await db.Clients.AnyAsync())
         {
@@ -43,6 +50,38 @@ public static class DbInitializer
             SeedNotifications(db);
             await db.SaveChangesAsync();
         }
+    }
+
+    /// <summary>The bootstrap administrator. Idempotent.</summary>
+    private static async Task SeedAdminAsync(
+        UserManager<ApplicationUser> userManager,
+        SeedOptions options)
+    {
+        if (await userManager.FindByEmailAsync(options.AdminEmail) is not null) return;
+
+        var admin = new ApplicationUser
+        {
+            Id = Id($"user:{options.AdminEmail}"),
+            UserName = options.AdminEmail,
+            Email = options.AdminEmail,
+            EmailConfirmed = true,
+            FullName = options.AdminName,
+            Initials = InitialsOf(options.AdminName),
+            Title = "Administrator",
+            Department = "IT",
+            AvatarColor = "#161B26",
+            IsActive = true,
+        };
+        await userManager.CreateAsync(admin, options.AdminPassword);
+        await userManager.AddToRoleAsync(admin, Identity.Roles.Admin);
+    }
+
+    private static string InitialsOf(string name)
+    {
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "?";
+        if (parts.Length == 1) return parts[0][..Math.Min(2, parts[0].Length)].ToUpperInvariant();
+        return $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[^1][0])}";
     }
 
     // ---- Roles ----
@@ -69,10 +108,9 @@ public static class DbInitializer
         new("tom", "tom.okafor@etech.io", "Tom Okafor", "TO", "Analyst", "Data", "#175CD3", [Identity.Roles.Employee]),
         new("amy", "amy.park@etech.io", "Amy Park", "AP", "Consultant", "Engineering", "#0E9384", [Identity.Roles.Employee]),
         new("dana", "dana.whitfield@etech.io", "Dana Whitfield", "DW", "Delivery Manager", "Delivery", "#B54708", [Identity.Roles.Manager]),
-        new("admin", "admin@etech.io", "Workspace Admin", "WA", "Administrator", "IT", "#161B26", [Identity.Roles.Admin]),
     ];
 
-    private static async Task SeedUsersAsync(UserManager<ApplicationUser> userManager, string demoPassword)
+    private static async Task SeedDemoUsersAsync(UserManager<ApplicationUser> userManager, string demoPassword)
     {
         foreach (var u in Users)
         {
@@ -135,9 +173,10 @@ public static class DbInitializer
                 ClientId = Id($"client:{p.ClientKey}"),
                 ColorHex = p.Color,
                 EstimatedHours = p.Est,
-                ActualHours = p.Act,
                 Budget = p.Budget,
-                Spent = p.Spent,
+                // Actual hours and spend are computed from logged time; the demo's
+                // blended rate is back-derived from its original spent/actual figures.
+                HourlyRate = p.Act > 0 ? Math.Round(p.Spent / p.Act, 2) : 0m,
                 DueDate = p.Due,
                 Health = p.Health,
                 CompletionPct = p.Completion,

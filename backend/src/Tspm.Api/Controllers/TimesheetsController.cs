@@ -18,4 +18,10 @@ public class TimesheetsController : ApiControllerBase
     [HttpPost("submit")]
     public async Task<ActionResult<WeeklyTimesheetDto>> Submit([FromQuery] DateOnly weekStart)
         => Ok(await _timesheets.SubmitAsync(UserId, weekStart));
+
+    /// <summary>Set the hours for one cell of the weekly grid; returns the recomputed week.</summary>
+    [HttpPut("cell")]
+    public async Task<ActionResult<WeeklyTimesheetDto>> SetCell(
+        [FromQuery] DateOnly weekStart, SetCellRequest request)
+        => Ok(await _timesheets.SetCellAsync(UserId, weekStart, request));
 }

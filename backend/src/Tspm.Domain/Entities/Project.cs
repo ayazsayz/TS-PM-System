@@ -17,12 +17,11 @@ public class Project : Entity
     public decimal Budget { get; set; }
 
     /// <summary>
-    /// Rolled-up lifetime totals. In a real system these are recomputed from
-    /// <see cref="TimeEntry"/> history by a background rollup; seeded here to
-    /// the demo values so the API returns the numbers the UI expects.
+    /// Blended hourly rate used to turn logged hours into spend.
+    /// Actual hours and spend are <em>computed</em> from <see cref="TimeEntry"/>
+    /// history — never stored — so budget tracking reflects real logged time.
     /// </summary>
-    public int ActualHours { get; set; }
-    public decimal Spent { get; set; }
+    public decimal HourlyRate { get; set; }
 
     public DateOnly? DueDate { get; set; }
     public ProjectHealth Health { get; set; } = ProjectHealth.OnTrack;
@@ -31,6 +30,9 @@ public class Project : Entity
 
     /// <summary>Internal (non-client) buckets like Training &amp; Ops.</summary>
     public bool IsInternal { get; set; }
+
+    /// <summary>Archived projects are hidden from pickers but keep their history.</summary>
+    public bool IsArchived { get; set; }
 
     public ICollection<ProjectMember> Members { get; set; } = new List<ProjectMember>();
     public ICollection<TimeEntry> TimeEntries { get; set; } = new List<TimeEntry>();
