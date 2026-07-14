@@ -1,94 +1,181 @@
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Card, Icon, PageContainer, ProgressBar } from '@/components';
-import { dayDefs, dayLabels, projects } from '@/lib/mockData';
-import { DAY_HOURS, dayBarColor, fmtH, pct, sumEntries } from '@/lib/calc';
-import { useTimesheetStore } from '@/store/useTimesheetStore';
+import { ApiError } from '@/lib/apiClient';
+import {
+  DAY_NAMES,
+  addDays,
+  dayOfMonth,
+  iso,
+  longDay,
+  parseIso,
+  today,
+  weekDates,
+} from '@/lib/dates';
+import { projectsService, type Project } from '@/services/projectsService';
+import { timeEntriesService, type TimeEntry } from '@/services/timesheetService';
 import { useUiStore } from '@/store/useUiStore';
 import styles from './DailyEntry.module.css';
 
 const GRID = '220px 150px 1fr 78px 78px 66px 96px 70px 36px';
 const HEADERS = ['PROJECT', 'TASK', 'DESCRIPTION', 'START', 'END', 'BREAK', 'BILLABLE', 'HOURS'];
+const DAY_TARGET = 8;
 
-/** Favorite projects for the quick-add row. */
-const favIdx = [0, 3, 1, 6];
+const fmt = (n: number) => String(Number(n.toFixed(2)));
 
 export default function DailyEntryPage() {
-  const {
-    activeDay,
-    entriesByDay,
-    setActiveDay,
-    updateEntry,
-    addEntry,
-    removeEntry,
-    duplicateYesterday,
-  } = useTimesheetStore();
   const toast = useUiStore((s) => s.showToast);
 
-  const entries = entriesByDay[activeDay] || [];
-  const dayTotal = sumEntries(entries);
+  const [date, setDate] = useState(today());
+  const [entries, setEntries] = useState<TimeEntry[]>([]);
+  const [dayTotals, setDayTotals] = useState<Record<string, number>>({});
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const days = weekDates(date);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const weekStart = weekDates(date)[0];
+      const [dayEntries, weekEntries, projs] = await Promise.all([
+        timeEntriesService.byDate(date),
+        timeEntriesService.byWeek(weekStart),
+        projectsService.list(),
+      ]);
+      setEntries(dayEntries);
+      setProjects(projs);
+
+      // Totals per day so the day strip can show each day's hours.
+      const totals: Record<string, number> = {};
+      for (const e of weekEntries) totals[e.date] = (totals[e.date] ?? 0) + e.hours;
+      setDayTotals(totals);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not load entries.');
+    } finally {
+      setLoading(false);
+    }
+  }, [date]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const fail = (err: unknown) =>
+    toast(err instanceof ApiError ? err.message : 'Something went wrong.');
+
+  const dayTotal = entries.reduce((t, e) => t + e.hours, 0);
+
+  const addEntry = async () => {
+    if (projects.length === 0) {
+      toast('Create a project first — you need something to log time against.');
+      return;
+    }
+    try {
+      await timeEntriesService.create({
+        projectId: projects[0].id,
+        date,
+        task: '',
+        billable: true,
+        hours: 0,
+      });
+      void load();
+    } catch (err) {
+      fail(err);
+    }
+  };
+
+  /** Persist a single field edit on an entry. */
+  const patch = async (entry: TimeEntry, changes: Partial<TimeEntry>) => {
+    const merged = { ...entry, ...changes };
+    setEntries((prev) => prev.map((e) => (e.id === entry.id ? merged : e))); // optimistic
+    try {
+      await timeEntriesService.update(entry.id, {
+        projectId: merged.projectId,
+        date: merged.date,
+        task: merged.task,
+        description: merged.description,
+        start: merged.start,
+        end: merged.end,
+        break: merged.break,
+        billable: merged.billable,
+        hours: Number(merged.hours) || 0,
+      });
+      void load();
+    } catch (err) {
+      fail(err);
+      void load(); // roll back to server truth
+    }
+  };
+
+  const removeEntry = async (id: string) => {
+    try {
+      await timeEntriesService.remove(id);
+      void load();
+    } catch (err) {
+      fail(err);
+    }
+  };
+
+  const duplicateYesterday = async () => {
+    const from = iso(addDays(parseIso(date), -1));
+    try {
+      const { copied } = await timeEntriesService.duplicateDay(from, date);
+      toast(copied > 0 ? `Copied ${copied} entries from yesterday` : 'Nothing to copy from yesterday');
+      void load();
+    } catch (err) {
+      fail(err);
+    }
+  };
 
   const remainLabel =
-    dayTotal > DAY_HOURS
-      ? `${fmtH(dayTotal - DAY_HOURS)}h over standard day`
-      : dayTotal >= DAY_HOURS
+    dayTotal > DAY_TARGET
+      ? `${fmt(dayTotal - DAY_TARGET)}h over standard day`
+      : dayTotal >= DAY_TARGET
         ? 'Day complete ✓'
-        : `${fmtH(DAY_HOURS - dayTotal)}h remaining`;
+        : `${fmt(DAY_TARGET - dayTotal)}h remaining`;
   const remainColor =
-    dayTotal > DAY_HOURS ? 'var(--amber)' : dayTotal >= DAY_HOURS ? 'var(--green)' : 'var(--text3)';
+    dayTotal > DAY_TARGET ? 'var(--amber)' : dayTotal >= DAY_TARGET ? 'var(--green)' : 'var(--text3)';
+  const barColor =
+    dayTotal > DAY_TARGET ? 'var(--amber)' : dayTotal >= DAY_TARGET ? 'var(--green)' : 'var(--accent)';
 
   return (
     <PageContainer>
-      {/* HEADER */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'space-between',
-          gap: 16,
-          marginBottom: 20,
-          flexWrap: 'wrap',
-        }}
-      >
+      <div className={styles.header}>
         <div>
-          <h1 style={{ margin: '0 0 4px', fontSize: 23, fontWeight: 700, letterSpacing: '-0.02em' }}>
-            {dayLabels[activeDay]}
-          </h1>
-          <div style={{ fontSize: 13.5, color: 'var(--text3)' }}>
-            Week 27 · Auto-save on · <span style={{ color: 'var(--text2)' }}>Tab / Enter to move between cells</span>
-          </div>
+          <h1 className={styles.title}>{longDay(date)}</h1>
+          <div className={styles.subtitle}>Log time against your projects</div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <Button variant="secondary" onClick={duplicateYesterday}>
             <Icon name="copy" size={13} />
             Duplicate yesterday
           </Button>
-          <Button variant="secondary" onClick={() => toast('Draft saved · auto-save is on')}>
-            Save draft
-          </Button>
-          <Button variant="primary" onClick={() => toast('Day submitted for approval')}>
-            Submit day
+          <Button variant="primary" onClick={addEntry}>
+            <Icon name="plus" size={13} />
+            Add entry
           </Button>
         </div>
       </div>
 
-      {/* DAY STRIP */}
+      {/* DAY STRIP — real dates for the week containing the selected day */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 8, marginBottom: 14 }}>
-        {dayDefs.map(([name, num], i) => {
-          const tot = sumEntries(entriesByDay[i] || []);
-          const active = i === activeDay;
-          const subLabel = tot > 0 ? `${fmtH(tot)}h` : i >= 5 ? '—' : '0h';
-          const dotBg = active
+        {days.map((d, i) => {
+          const active = d === date;
+          const tot = dayTotals[d] ?? 0;
+          const dot = active
             ? 'rgba(255,255,255,.72)'
-            : tot >= DAY_HOURS
+            : tot >= DAY_TARGET
               ? 'var(--green)'
               : tot > 0
                 ? 'var(--amber)'
                 : 'var(--border2)';
-          const subColor = active ? 'rgba(255,255,255,.72)' : tot >= DAY_HOURS ? 'var(--green)' : 'var(--text3)';
           return (
             <div
-              key={name}
+              key={d}
               className={styles.dayCell}
-              onClick={() => setActiveDay(i)}
+              onClick={() => setDate(d)}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -100,16 +187,26 @@ export default function DailyEntryPage() {
                 background: active ? 'var(--accent)' : 'var(--surface)',
                 color: active ? '#fff' : 'var(--text)',
                 cursor: 'pointer',
-                transition: 'all 0.15s',
               }}
             >
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', opacity: 0.75 }}>{name}</div>
-              <div className="tnum" style={{ fontSize: 17, fontWeight: 700 }}>
-                {num}
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', opacity: 0.75 }}>
+                {DAY_NAMES[i]}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: subColor }}>
-                <span style={{ width: 6, height: 6, borderRadius: 99, background: dotBg }} />
-                {subLabel}
+              <div className="tnum" style={{ fontSize: 17, fontWeight: 700 }}>
+                {dayOfMonth(d)}
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: active ? 'rgba(255,255,255,.72)' : tot > 0 ? 'var(--text3)' : 'var(--text3)',
+                }}
+              >
+                <span style={{ width: 6, height: 6, borderRadius: 99, background: dot }} />
+                {tot > 0 ? `${fmt(tot)}h` : '0h'}
               </div>
             </div>
           );
@@ -120,15 +217,15 @@ export default function DailyEntryPage() {
       <Card pad={false} style={{ padding: '16px 20px', marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
           <span className="tnum" style={{ fontSize: 13, fontWeight: 650 }}>
-            {fmtH(dayTotal)} / {DAY_HOURS}h logged
+            {fmt(dayTotal)} / {DAY_TARGET}h logged
           </span>
           <span style={{ fontSize: 12.5, fontWeight: 600, color: remainColor }}>{remainLabel}</span>
         </div>
-        <ProgressBar value={pct(dayTotal, DAY_HOURS)} color={dayBarColor(dayTotal)} />
+        <ProgressBar value={Math.min(100, (dayTotal / DAY_TARGET) * 100)} color={barColor} />
       </Card>
 
       {/* ENTRY GRID */}
-      <Card pad={false} style={{ overflow: 'hidden', marginBottom: 14 }}>
+      <Card pad={false} style={{ overflow: 'hidden' }}>
         <div
           style={{
             display: 'grid',
@@ -156,190 +253,169 @@ export default function DailyEntryPage() {
           <div />
         </div>
 
-        {entries.length === 0 ? (
+        {loading && <div className={styles.empty}>Loading…</div>}
+
+        {!loading && error && (
+          <div className={styles.empty} style={{ color: 'var(--red)' }}>
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && entries.length === 0 && (
           <div style={{ padding: '44px 20px', textAlign: 'center' }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text2)', marginBottom: 4 }}>
               No time logged for this day
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 16 }}>
-              Add an entry, or copy yesterday's schedule to get started.
+              {projects.length === 0
+                ? 'You have no projects yet — create one before logging time.'
+                : 'Add an entry, or copy yesterday’s schedule to get started.'}
             </div>
-            <button
-              onClick={() => addEntry(0)}
-              style={{
-                padding: '8px 14px',
-                borderRadius: 8,
-                border: '1px solid var(--border2)',
-                background: 'var(--surface)',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                color: 'var(--accent-text)',
-              }}
-            >
-              + Add first entry
-            </button>
+            {projects.length > 0 && (
+              <Button variant="secondary" onClick={addEntry}>
+                + Add first entry
+              </Button>
+            )}
           </div>
-        ) : (
-          <>
-            {entries.map((e, i) => (
-              <div
-                key={i}
-                className={styles.row}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: GRID,
-                  alignItems: 'center',
-                  padding: '4px 12px',
-                  borderBottom: '1px solid var(--border)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px' }}>
-                  <span style={{ width: 9, height: 9, borderRadius: 3, background: projects[e.p].color, flexShrink: 0 }} />
-                  <select
-                    className={styles.projectSelect}
-                    value={e.p}
-                    onChange={(ev) => updateEntry(i, 'p', parseInt(ev.target.value, 10))}
-                  >
-                    {projects.map((p, idx) => (
-                      <option key={idx} value={idx}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <input
-                  className={styles.cellInput}
-                  value={e.task}
-                  onChange={(ev) => updateEntry(i, 'task', ev.target.value)}
-                  placeholder="Task"
-                />
-                <input
-                  className={styles.cellInput}
-                  style={{ color: 'var(--text2)' }}
-                  value={e.desc}
-                  onChange={(ev) => updateEntry(i, 'desc', ev.target.value)}
-                  placeholder="What did you work on?"
-                />
-                <input
-                  className={styles.cellInput}
-                  value={e.start}
-                  onChange={(ev) => updateEntry(i, 'start', ev.target.value)}
-                  placeholder="—"
-                />
-                <input
-                  className={styles.cellInput}
-                  value={e.end}
-                  onChange={(ev) => updateEntry(i, 'end', ev.target.value)}
-                  placeholder="—"
-                />
-                <input
-                  className={styles.cellInput}
-                  value={e.brk}
-                  onChange={(ev) => updateEntry(i, 'brk', ev.target.value)}
-                  placeholder="—"
-                />
-                <div style={{ padding: '0 8px' }}>
-                  <span
-                    onClick={() => updateEntry(i, 'billable', !e.billable)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      color: e.billable ? 'var(--green)' : 'var(--text3)',
-                      background: e.billable ? 'var(--green-soft)' : 'var(--surface2)',
-                      borderRadius: 99,
-                      padding: '4px 10px',
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {e.billable ? 'Billable' : 'Non-bill.'}
-                  </span>
-                </div>
-                <input
-                  className={styles.hoursInput}
-                  type="number"
-                  step="0.25"
-                  min="0"
-                  value={e.hours}
-                  onChange={(ev) => updateEntry(i, 'hours', ev.target.value === '' ? '' : parseFloat(ev.target.value))}
-                  placeholder="0"
-                />
-                <div className={styles.iconAction} title="Remove entry" onClick={() => removeEntry(i)}>
-                  <Icon name="trash" size={12} />
-                </div>
-              </div>
-            ))}
+        )}
+
+        {!loading &&
+          !error &&
+          entries.map((e) => (
             <div
+              key={e.id}
+              className={styles.row}
               style={{
-                display: 'flex',
+                display: 'grid',
+                gridTemplateColumns: GRID,
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px 20px',
-                background: 'var(--surface2)',
+                padding: '4px 12px',
+                borderBottom: '1px solid var(--border)',
               }}
             >
-              <button
-                onClick={() => addEntry(0)}
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: 'var(--accent-text)',
-                  cursor: 'pointer',
-                  padding: '4px 0',
-                }}
-              >
-                + Add entry
-              </button>
-              <div style={{ fontSize: 13, color: 'var(--text2)' }}>
-                Day total&nbsp;&nbsp;
-                <span className="tnum" style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
-                  {fmtH(dayTotal)}h
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px' }}>
+                <span
+                  style={{ width: 9, height: 9, borderRadius: 3, background: e.projectColor, flexShrink: 0 }}
+                />
+                <select
+                  className={styles.projectSelect}
+                  value={e.projectId}
+                  onChange={(ev) => patch(e, { projectId: ev.target.value })}
+                >
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <input
+                className={styles.cellInput}
+                defaultValue={e.task}
+                onBlur={(ev) => ev.target.value !== e.task && patch(e, { task: ev.target.value })}
+                placeholder="Task"
+              />
+              <input
+                className={styles.cellInput}
+                style={{ color: 'var(--text2)' }}
+                defaultValue={e.description ?? ''}
+                onBlur={(ev) =>
+                  ev.target.value !== (e.description ?? '') && patch(e, { description: ev.target.value })
+                }
+                placeholder="What did you work on?"
+              />
+              <input
+                className={styles.cellInput}
+                defaultValue={e.start ?? ''}
+                onBlur={(ev) => ev.target.value !== (e.start ?? '') && patch(e, { start: ev.target.value })}
+                placeholder="—"
+              />
+              <input
+                className={styles.cellInput}
+                defaultValue={e.end ?? ''}
+                onBlur={(ev) => ev.target.value !== (e.end ?? '') && patch(e, { end: ev.target.value })}
+                placeholder="—"
+              />
+              <input
+                className={styles.cellInput}
+                defaultValue={e.break ?? ''}
+                onBlur={(ev) => ev.target.value !== (e.break ?? '') && patch(e, { break: ev.target.value })}
+                placeholder="—"
+              />
+
+              <div style={{ padding: '0 8px' }}>
+                <span
+                  onClick={() => patch(e, { billable: !e.billable })}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: e.billable ? 'var(--green)' : 'var(--text3)',
+                    background: e.billable ? 'var(--green-soft)' : 'var(--surface2)',
+                    borderRadius: 99,
+                    padding: '4px 10px',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {e.billable ? 'Billable' : 'Non-bill.'}
                 </span>
               </div>
-            </div>
-          </>
-        )}
-      </Card>
 
-      {/* QUICK ADD */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text3)' }}>Quick add from favorites:</span>
-        {favIdx.map((idx) => {
-          const p = projects[idx];
-          const shortName = p.name.split('·')[0].trim();
-          return (
-            <span
-              key={idx}
-              onClick={() => {
-                addEntry(idx);
-                toast(`Entry added — ${p.name}`);
-              }}
+              <input
+                className={styles.hoursInput}
+                type="number"
+                step="0.25"
+                min="0"
+                defaultValue={e.hours}
+                onBlur={(ev) => {
+                  const v = Number(ev.target.value) || 0;
+                  if (v !== e.hours) patch(e, { hours: v });
+                }}
+              />
+
+              <div className={styles.iconAction} title="Remove entry" onClick={() => removeEntry(e.id)}>
+                <Icon name="trash" size={12} />
+              </div>
+            </div>
+          ))}
+
+        {!loading && !error && entries.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 20px',
+              background: 'var(--surface2)',
+            }}
+          >
+            <button
+              onClick={addEntry}
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 7,
-                fontSize: 12.5,
+                border: 'none',
+                background: 'transparent',
+                fontSize: 13,
                 fontWeight: 600,
-                color: 'var(--text2)',
-                background: 'var(--surface)',
-                border: '1px solid var(--border2)',
-                borderRadius: 99,
-                padding: '6px 12px',
+                color: 'var(--accent-text)',
                 cursor: 'pointer',
+                padding: '4px 0',
               }}
             >
-              <span style={{ width: 8, height: 8, borderRadius: 99, background: p.color }} />
-              {shortName}
-            </span>
-          );
-        })}
-      </div>
+              + Add entry
+            </button>
+            <div style={{ fontSize: 13, color: 'var(--text2)' }}>
+              Day total&nbsp;&nbsp;
+              <span className="tnum" style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
+                {fmt(dayTotal)}h
+              </span>
+            </div>
+          </div>
+        )}
+      </Card>
     </PageContainer>
   );
 }

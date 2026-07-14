@@ -9,6 +9,16 @@ public record WeekRowDto(
     decimal[] Cells,
     decimal Total);
 
+/// <summary>
+/// Sets the total hours for one cell of the weekly grid (a project+task on a day).
+/// Upserts: creates, updates, or clears the underlying time entries.
+/// </summary>
+public record SetCellRequest(
+    Guid ProjectId,
+    string Task,
+    DateOnly Date,
+    decimal Hours);
+
 public record WeeklyTimesheetDto(
     DateOnly WeekStart,
     string Status,

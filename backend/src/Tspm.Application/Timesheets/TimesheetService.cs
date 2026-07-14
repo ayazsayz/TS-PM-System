@@ -10,6 +10,9 @@ public interface ITimesheetService
 {
     Task<WeeklyTimesheetDto> GetWeekAsync(Guid userId, DateOnly weekStart);
     Task<WeeklyTimesheetDto> SubmitAsync(Guid userId, DateOnly weekStart);
+
+    /// <summary>Upserts one cell of the weekly grid and returns the recomputed week.</summary>
+    Task<WeeklyTimesheetDto> SetCellAsync(Guid userId, DateOnly weekStart, SetCellRequest request);
 }
 
 public class TimesheetService : ITimesheetService
@@ -48,6 +51,50 @@ public class TimesheetService : ITimesheetService
         await _db.SaveChangesAsync();
 
         return built;
+    }
+
+    /// <summary>
+    /// Upserts the hours for a single project+task+day. The weekly grid is an aggregate,
+    /// so a cell may map to several underlying entries: we keep one and drop the rest.
+    /// Setting hours to zero clears the cell entirely.
+    /// </summary>
+    public async Task<WeeklyTimesheetDto> SetCellAsync(
+        Guid userId, DateOnly weekStart, SetCellRequest request)
+    {
+        var task = request.Task ?? string.Empty;
+
+        var existing = await _db.TimeEntries
+            .Where(e => e.UserId == userId
+                        && e.ProjectId == request.ProjectId
+                        && e.Date == request.Date
+                        && e.Task == task)
+            .ToListAsync();
+
+        if (request.Hours <= 0)
+        {
+            _db.TimeEntries.RemoveRange(existing);
+        }
+        else if (existing.Count == 0)
+        {
+            _db.TimeEntries.Add(new TimeEntry
+            {
+                UserId = userId,
+                ProjectId = request.ProjectId,
+                Date = request.Date,
+                Task = task,
+                IsBillable = true,
+                Hours = request.Hours,
+            });
+        }
+        else
+        {
+            existing[0].Hours = request.Hours;
+            // Collapse duplicates so the cell stays a single source of truth.
+            if (existing.Count > 1) _db.TimeEntries.RemoveRange(existing.Skip(1));
+        }
+
+        await _db.SaveChangesAsync();
+        return await GetWeekAsync(userId, weekStart);
     }
 
     private async Task<WeeklyTimesheetDto> BuildAsync(Guid userId, DateOnly weekStart, TimesheetStatus status)
