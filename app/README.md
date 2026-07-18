@@ -1,12 +1,11 @@
-# Timesheet & Project-Management SaaS (Base)
+# Cadence — Time & Project Management (frontend)
 
-A white-label **time tracking + project management** web app built in React + TypeScript.
-It is a faithful, fully-interactive implementation of the `ui-mockup/` design — the same
-9 screens, light **and** dark themes, and live derived calculations.
+**Cadence** is a multi-tenant **time tracking + project management** SaaS, built in
+React + TypeScript, light **and** dark themes. Organizations self-register and each gets its
+own isolated users, projects and timesheets.
 
-"eTech" is only the **default demo brand**. Everything tenant-specific lives in one config
-file (`src/config/brand.ts`), so the whole app re-skins for any organization with no other
-code changes.
+The **product** brand ("Cadence") lives in `src/config/brand.ts`; each tenant **organization**
+keeps its own name, shown in the app once signed in.
 
 > **This README is the living document for the app.** It is updated with every meaningful
 > change. See the [Changelog](#changelog) at the bottom.
@@ -52,14 +51,9 @@ The API base URL comes from `.env`:
 VITE_API_URL=http://localhost:5041
 ```
 
-**Sign in** with the bootstrap administrator — a fresh database contains nothing else:
-
-| Email | Password |
-| --- | --- |
-| `admin@etech.io` | `Passw0rd!` |
-
-From there you create your own users, clients and projects in the app (see
-[Entering data](#entering-data)).
+On first run the database is empty — click **“Create an organization”** on the login screen
+(or go to `/register`) to set up your workspace. You become its administrator, and from there
+you create users, clients and projects in the app (see [Entering data](#entering-data)).
 
 **Other scripts**
 
@@ -142,7 +136,8 @@ Path alias: `@/` → `src/` (configured in `vite.config.ts` and `tsconfig.app.js
 
 | Route | Screen | Role |
 | --- | --- | --- |
-| `/login` | Login (split hero + SSO/email) | All |
+| `/login` | Login (split hero + SSO/email) | Public |
+| `/register` | Create an organization (public signup) | Public |
 | `/change-password` | Set / change password | All |
 | `/dashboard` | Employee Dashboard | All |
 | `/daily` | Daily Timesheet Entry | All |
@@ -160,11 +155,12 @@ intentional rather than broken.
 
 A new workspace starts empty. The order that unblocks everything:
 
-1. **Admin → Users** — add people (each gets a one-time password).
-2. **Projects → Manage clients** — add a client.
-3. **Projects → New project** — set estimate, budget, **hourly rate**, and assign the team.
-4. **Daily Entry** / **Weekly Timesheet** — log time against that project.
-5. **Weekly → Submit** — the week locks and appears under **Approvals**.
+1. **Create an organization** at `/register` — you become its admin.
+2. **Admin → Users** — add people (each gets a one-time password).
+3. **Projects → Manage clients** — add a client.
+4. **Projects → New project** — set estimate, budget, **hourly rate**, and assign the team.
+5. **Daily Entry** / **Weekly Timesheet** — log time against that project.
+6. **Weekly → Submit** — the week locks and appears under **Approvals**.
 
 Spend, budget %, utilization and every report figure are **computed from logged time** —
 nothing is entered twice.
@@ -179,12 +175,17 @@ The hours field is outlined in the accent colour when it was derived, and typing
 wins. Times accept `9`, `9:30`, `09:00` or `0930`; breaks accept `0:30` or `30` (minutes).
 If the input is ambiguous (e.g. end ≤ start) it refuses to guess and leaves your hours alone.
 
-## Authentication
+## Authentication & organizations
 
 - Real JWT auth against the backend. Tokens are persisted in `localStorage`
   (`lib/apiClient.ts`), and a **401 transparently refreshes and retries** the request once.
-- `useAuthStore` exposes `login`, `changePassword`, `logout`, `restore` (session rehydrate on
-  boot) and `hasRole()`.
+- `useAuthStore` exposes `register`, `login`, `changePassword`, `logout`, `restore` (session
+  rehydrate on boot) and `hasRole()`. The signed-in `user` carries its `organizationId` +
+  `organizationName`.
+- **Multi-tenant:** the app is scoped to the signed-in user's organization end-to-end (the
+  backend isolates by tenant). The sidebar shows the current organization as a workspace chip
+  under the Cadence wordmark.
+- **Public signup:** `/register` creates a new organization and its first admin.
 - **Role-gated UI:** the sidebar's `ADMIN` section and the `/admin/*` routes only render for
   users holding the `Admin` role.
 
@@ -266,6 +267,16 @@ the default palette, also update `defaultAccent` (or edit the accent options in
 ## Changelog
 
 Newest first. Update this on every meaningful change.
+
+### 2026-07-18 — Cadence rebrand + multi-tenant organizations
+- **Rebranded the product to Cadence** (`brand.ts`); each tenant organization keeps its own
+  name, shown in-app.
+- **New `/register` page** — public organization signup with a live password checklist; linked
+  from the login page. On success you're signed in as the org's admin.
+- Extracted a shared `AuthShell` (split hero) used by both Login and Register.
+- `useAuthStore.register`; the signed-in `user` now carries `organizationId` +
+  `organizationName`.
+- The **sidebar shows the current organization** as a workspace chip under the wordmark.
 
 ### 2026-07-14 — Live data: every screen on the real API; all mock data deleted
 - **Deleted `lib/mockData.ts`, `store/useTimesheetStore.ts`, `lib/calc.ts`, `lib/types.ts`.**
