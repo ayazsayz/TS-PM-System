@@ -3,8 +3,10 @@ using Tspm.Domain.Common;
 namespace Tspm.Domain.Entities;
 
 /// <summary>Approval history / audit trail entry.</summary>
-public class AuditLogEntry : Entity
+public class AuditLogEntry : Entity, IHasOrganization
 {
+    public Guid OrganizationId { get; set; }
+
     public Guid ActorId { get; set; }
 
     /// <summary>Machine action code, e.g. "timesheet.approved".</summary>

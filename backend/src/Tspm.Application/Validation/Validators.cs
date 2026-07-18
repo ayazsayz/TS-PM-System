@@ -39,6 +39,22 @@ public class LoginRequestValidator : AbstractValidator<LoginRequest>
     }
 }
 
+public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
+{
+    public RegisterRequestValidator()
+    {
+        RuleFor(x => x.OrganizationName).NotEmpty().MaximumLength(160);
+        RuleFor(x => x.FullName).NotEmpty().MaximumLength(120);
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
+        RuleFor(x => x.Password)
+            .NotEmpty()
+            .MinimumLength(8).WithMessage("Password must be at least 8 characters.")
+            .Matches("[A-Z]").WithMessage("Password must contain an uppercase letter.")
+            .Matches("[a-z]").WithMessage("Password must contain a lowercase letter.")
+            .Matches("[0-9]").WithMessage("Password must contain a digit.");
+    }
+}
+
 public class ChangePasswordRequestValidator : AbstractValidator<ChangePasswordRequest>
 {
     public ChangePasswordRequestValidator()

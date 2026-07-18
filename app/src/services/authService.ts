@@ -10,6 +10,8 @@ export interface ApiUser {
   avatarColor: string;
   roles: string[];
   mustChangePassword: boolean;
+  organizationId: string;
+  organizationName: string;
 }
 
 export interface AuthResponse {
@@ -21,6 +23,21 @@ export interface AuthResponse {
 }
 
 export const authService = {
+  async register(
+    organizationName: string,
+    fullName: string,
+    email: string,
+    password: string,
+  ): Promise<AuthResponse> {
+    const res = await api.post<AuthResponse>(
+      '/api/auth/register',
+      { organizationName, fullName, email, password },
+      true,
+    );
+    tokenStore.set(res.accessToken, res.refreshToken);
+    return res;
+  },
+
   async login(email: string, password: string): Promise<AuthResponse> {
     const res = await api.post<AuthResponse>('/api/auth/login', { email, password }, true);
     tokenStore.set(res.accessToken, res.refreshToken);

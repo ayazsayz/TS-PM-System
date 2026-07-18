@@ -2,6 +2,12 @@ namespace Tspm.Application.Auth;
 
 public record LoginRequest(string Email, string Password);
 
+public record RegisterRequest(
+    string OrganizationName,
+    string FullName,
+    string Email,
+    string Password);
+
 public record RefreshRequest(string RefreshToken);
 
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
@@ -23,4 +29,6 @@ public record CurrentUserDto(
     string? Department,
     string AvatarColor,
     IReadOnlyList<string> Roles,
-    bool MustChangePassword);
+    bool MustChangePassword,
+    Guid OrganizationId,
+    string OrganizationName);

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Tspm.Application.Common.Interfaces;
+using Tspm.Domain.Common;
 using Tspm.Domain.Entities;
 using Tspm.Infrastructure.Identity;
 
@@ -9,9 +10,15 @@ namespace Tspm.Infrastructure.Persistence;
 
 public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>, IAppDbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options)
-        : base(options) { }
+    private readonly Guid? _tenantId;
 
+    public AppDbContext(DbContextOptions<AppDbContext> options, ICurrentTenant? tenant = null)
+        : base(options) => _tenantId = tenant?.OrganizationId;
+
+    /// <summary>Current tenant for query filters (Guid.Empty ⇒ match nothing = fail closed).</summary>
+    private Guid TenantId => _tenantId ?? Guid.Empty;
+
+    public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<Client> Clients => Set<Client>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
@@ -24,6 +31,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
     protected override void OnModelCreating(ModelBuilder b)
     {
         base.OnModelCreating(b);
+
+        b.Entity<Organization>(e =>
+        {
+            e.Property(o => o.Name).HasMaxLength(160).IsRequired();
+            e.Property(o => o.Slug).HasMaxLength(80).IsRequired();
+            e.HasIndex(o => o.Slug).IsUnique();
+        });
 
         b.Entity<ApplicationUser>(e =>
         {
@@ -98,5 +112,58 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
             e.Property(n => n.Category).HasMaxLength(60);
             e.HasIndex(n => new { n.UserId, n.IsRead });
         });
+
+        // ---- Tenancy: FK + index + global query filter on every tenant entity ----
+        // ApplicationUser carries OrganizationId too, but is intentionally NOT filtered —
+        // login must find a user by (globally-unique) email before a tenant is known.
+        b.Entity<ApplicationUser>()
+            .HasOne<Organization>().WithMany().HasForeignKey(u => u.OrganizationId)
+            .OnDelete(DeleteBehavior.Restrict);
+        b.Entity<ApplicationUser>().HasIndex(u => u.OrganizationId);
+
+        ConfigureTenant<Client>(b);
+        ConfigureTenant<Project>(b);
+        ConfigureTenant<ProjectMember>(b);
+        ConfigureTenant<TimeEntry>(b);
+        ConfigureTenant<Timesheet>(b);
+        ConfigureTenant<TodoTask>(b);
+        ConfigureTenant<AuditLogEntry>(b);
+        ConfigureTenant<Notification>(b);
+    }
+
+    private void ConfigureTenant<T>(ModelBuilder b) where T : class, IHasOrganization
+    {
+        b.Entity<T>().Property(e => e.OrganizationId).IsRequired();
+        b.Entity<T>().HasIndex(e => e.OrganizationId);
+        b.Entity<T>()
+            .HasOne<Organization>().WithMany().HasForeignKey(e => e.OrganizationId)
+            .OnDelete(DeleteBehavior.Restrict);
+        // Instance-level filter — EF re-evaluates TenantId per query on this context.
+        b.Entity<T>().HasQueryFilter(e => e.OrganizationId == TenantId);
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken ct = default)
+    {
+        StampTenant();
+        return base.SaveChangesAsync(ct);
+    }
+
+    public override int SaveChanges()
+    {
+        StampTenant();
+        return base.SaveChanges();
+    }
+
+    /// <summary>
+    /// Stamps new tenant rows with the current tenant, so a service can never forget to.
+    /// Rows created with an explicit OrganizationId (e.g. registration, which runs before a
+    /// tenant context exists) are left untouched.
+    /// </summary>
+    private void StampTenant()
+    {
+        if (_tenantId is not Guid tenant) return;
+        foreach (var entry in ChangeTracker.Entries<IHasOrganization>())
+            if (entry.State == EntityState.Added && entry.Entity.OrganizationId == Guid.Empty)
+                entry.Entity.OrganizationId = tenant;
     }
 }

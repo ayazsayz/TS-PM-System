@@ -4,6 +4,9 @@ namespace Tspm.Application.Common.Interfaces;
 
 public interface IAuthService
 {
+    /// <summary>Creates a new organization and its first Admin, then signs them in.</summary>
+    Task<AuthResponse> RegisterAsync(RegisterRequest request);
+
     Task<AuthResponse?> LoginAsync(LoginRequest request);
     Task<AuthResponse?> RefreshAsync(RefreshRequest request);
     Task LogoutAsync(Guid userId);

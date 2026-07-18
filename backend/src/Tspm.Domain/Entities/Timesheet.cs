@@ -4,8 +4,10 @@ using Tspm.Domain.Enums;
 namespace Tspm.Domain.Entities;
 
 /// <summary>A weekly submission wrapping the week's time entries for one user.</summary>
-public class Timesheet : Entity
+public class Timesheet : Entity, IHasOrganization
 {
+    public Guid OrganizationId { get; set; }
+
     public Guid UserId { get; set; }
 
     public DateOnly WeekStart { get; set; }

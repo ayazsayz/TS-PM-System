@@ -19,6 +19,12 @@ public class AuthController : ControllerBase
         _currentUser = currentUser;
     }
 
+    /// <summary>Public self-service signup: creates an organization and its first Admin.</summary>
+    [HttpPost("register")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResponse>> Register(RegisterRequest request)
+        => Ok(await _auth.RegisterAsync(request));
+
     [HttpPost("login")]
     [AllowAnonymous]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request)

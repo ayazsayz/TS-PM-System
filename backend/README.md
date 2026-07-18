@@ -71,31 +71,26 @@ dotnet run
 On startup the app **applies migrations and seeds** the demo data automatically (guarded — it
 skips if no connection string is configured). Swagger UI is served at the root in Development.
 
-### Seeding — the workspace starts empty
+### Getting in — register an organization
 
-A fresh database seeds **only the roles and one bootstrap administrator**, so you enter real
-data through the app. Roles + the admin are **always** created — otherwise an empty database
-would have no way to sign in and you'd be locked out.
+The API is **multi-tenant**: every organization owns its own users, clients, projects and time.
+A fresh database seeds **only the global roles** — there is no bootstrap admin. You create the
+first organization (and its admin) through public signup:
 
-| Purpose | Email | Password |
-| --- | --- | --- |
-| Bootstrap administrator | `admin@etech.io` | `Passw0rd!` |
-
-Everything else (people, clients, projects, time) you create in the UI: sign in as the admin,
-add users under **Admin → Users**, then add clients and projects under **Projects**.
+- **`POST /api/auth/register`** with `{ organizationName, fullName, email, password }`, or just
+  open the app and click **“Create an organization.”** The registrant becomes that org's Admin.
 
 Seeding is controlled by the `Seed` section of `appsettings.json`:
 
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `Seed:Enabled` | `true` | Master switch. Migrations still run when `false`. |
-| `Seed:DemoData` | **`false`** | Set `true` to also seed the full demo dataset (9 people, 5 clients, 7 projects, timesheets). |
-| `Seed:AdminEmail` / `AdminName` / `AdminPassword` | `admin@etech.io` … | The bootstrap admin. |
+| `Seed:DemoData` | **`false`** | Set `true` to seed a **demo organization** ("eTech (Demo)") with the full sample dataset (9 people, 5 clients, 7 projects, timesheets). Demo users share `Seed:DemoPassword`. |
 
 ### Resetting to a clean slate
 
 ```bash
-# drops the database; the next `dotnet run` recreates it and seeds roles + admin
+# drops the database; the next `dotnet run` recreates it and seeds roles only
 dotnet ef database drop -f --project src/Tspm.Infrastructure --startup-project src/Tspm.Infrastructure
 ```
 > The design-time factory points at LocalDB, so if your connection string targets another
@@ -123,10 +118,33 @@ system recomputes them from `TimeEntry` history). Current-week totals *are* deri
 
 ## Authentication
 
-1. `POST /api/auth/login` → `{ accessToken, refreshToken, accessTokenExpiresAt, user }`
+1. `POST /api/auth/register` creates an organization + its first Admin, or `POST /api/auth/login`
+   → `{ accessToken, refreshToken, accessTokenExpiresAt, user }` (the `user` includes its
+   `organizationId` + `organizationName`).
 2. Send `Authorization: Bearer <accessToken>` on protected calls.
 3. `POST /api/auth/refresh` rotates the pair; refresh tokens are stored **hashed** on the user.
 4. Role policies: `ManagerOnly` (Manager/Admin), `AdminOnly`.
+
+---
+
+## Multi-tenancy
+
+Every organization is an isolated tenant in a **shared database** (an `OrganizationId` on every
+tenant table). One user belongs to exactly one organization; email is globally unique.
+
+Isolation is enforced **centrally in `AppDbContext`**, not per-service, which is what makes it
+trustworthy:
+
+- The JWT carries an **`org` claim**; `ICurrentTenant` reads it.
+- A **global query filter** scopes every read to the current tenant, and **fails closed**
+  (matches nothing) when there is no tenant context.
+- `SaveChanges` **auto-stamps** `OrganizationId` on new rows, so a service can never forget.
+- `ApplicationUser` is deliberately **not** query-filtered — login must find a user by
+  (globally-unique) email before a tenant is known; user-management scopes by org explicitly.
+
+Guards operate per-organization (e.g. the "last admin" protection is the last admin *of that
+org*). Existing pre-tenancy data was migrated into a **"Default Organization"** by
+`MultiTenant_Organizations`.
 
 ---
 
@@ -135,6 +153,7 @@ system recomputes them from `TimeEntry` history). Current-week totals *are* deri
 ### Implemented ✅
 
 **Auth**
+- `POST /api/auth/register` *(public — creates an organization + its first Admin)*
 - `POST /api/auth/login`, `POST /api/auth/refresh`, `POST /api/auth/logout`, `GET /api/auth/me`
 
 **Clients**
@@ -259,6 +278,20 @@ dotnet test  Tspm.slnx
 ## Changelog
 
 Newest first.
+
+### 2026-07-18 — Multi-tenancy: organizations
+- The API is now multi-tenant. New `Organization` entity; `OrganizationId` on every tenant
+  table (+ `ApplicationUser`) via `IHasOrganization`.
+- Isolation enforced centrally in `AppDbContext`: a global query filter scopes every read
+  (fail-closed), and `SaveChanges` auto-stamps new rows. `ApplicationUser` is intentionally
+  unfiltered so login can resolve a user before a tenant is known.
+- `ICurrentTenant` reads an `org` claim added to the JWT.
+- Public `POST /api/auth/register` creates an organization + its first Admin. User management,
+  the directory, and the last-admin guard are all scoped per-organization.
+- `MultiTenant_Organizations` migration creates a "Default Organization" and backfills all
+  existing data into it — nothing lost.
+- No more bootstrap admin; the demo dataset now seeds its own demo organization.
+- 4 tenant-isolation tests (17 total).
 
 ### 2026-07-14 — Live data: client/project CRUD, computed spend, clean-slate seeding
 - **Clients CRUD** and **Projects CRUD** (+ team assignment). Previously projects were

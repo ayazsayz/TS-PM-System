@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Tspm.Domain.Common;
 
 namespace Tspm.Infrastructure.Identity;
 
@@ -7,8 +8,11 @@ namespace Tspm.Infrastructure.Identity;
 /// Infrastructure (tied to ASP.NET Identity); domain entities reference it by
 /// <see cref="Guid"/> UserId.
 /// </summary>
-public class ApplicationUser : IdentityUser<Guid>
+public class ApplicationUser : IdentityUser<Guid>, IHasOrganization
 {
+    /// <summary>The single organization this account belongs to.</summary>
+    public Guid OrganizationId { get; set; }
+
     public string FullName { get; set; } = string.Empty;
     public string Initials { get; set; } = string.Empty;
     public string? Title { get; set; }

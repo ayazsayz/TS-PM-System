@@ -3,8 +3,10 @@ using Tspm.Domain.Enums;
 
 namespace Tspm.Domain.Entities;
 
-public class Project : Entity
+public class Project : Entity, IHasOrganization
 {
+    public Guid OrganizationId { get; set; }
+
     public string Name { get; set; } = default!;
 
     public Guid ClientId { get; set; }

@@ -16,6 +16,7 @@ public class TokenService : ITokenService
 
     public (string Token, DateTime ExpiresAt) CreateAccessToken(
         Guid userId,
+        Guid organizationId,
         string email,
         string fullName,
         IEnumerable<string> roles,
@@ -27,6 +28,7 @@ public class TokenService : ITokenService
         {
             new(JwtRegisteredClaimNames.Sub, userId.ToString()),
             new(ClaimTypes.NameIdentifier, userId.ToString()),
+            new(ITokenService.OrganizationClaim, organizationId.ToString()),
             new(JwtRegisteredClaimNames.Email, email),
             new(ClaimTypes.Name, fullName),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),

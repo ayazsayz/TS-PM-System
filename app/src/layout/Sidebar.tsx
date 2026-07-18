@@ -38,9 +38,18 @@ export function Sidebar() {
       <div className={styles.brand}>
         <div className={styles.mark}>{brand.logoMark}</div>
         <div className={styles.brandName}>
-          {brand.name} <span className={styles.brandSuffix}>{brand.suffix}</span>
+          {brand.name}
+          {brand.suffix && <span className={styles.brandSuffix}> {brand.suffix}</span>}
         </div>
       </div>
+
+      {/* Current organization (tenant) */}
+      {user?.organizationName && (
+        <div className={styles.workspace} title={user.organizationName}>
+          <div className={styles.workspaceMark}>{user.organizationName.charAt(0).toUpperCase()}</div>
+          <div className={styles.workspaceName}>{user.organizationName}</div>
+        </div>
+      )}
 
       <button className={styles.search} onClick={openPalette}>
         <Icon name="search" size={13} />

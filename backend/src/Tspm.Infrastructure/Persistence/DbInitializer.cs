@@ -22,6 +22,9 @@ public static class DbInitializer
         return new Guid(hash);
     }
 
+    /// <summary>The demo organization all demo data belongs to (when Seed:DemoData is on).</summary>
+    public static readonly Guid DemoOrgId = Id("org:demo");
+
     public static async Task SeedAsync(
         AppDbContext db,
         UserManager<ApplicationUser> userManager,
@@ -31,16 +34,28 @@ public static class DbInitializer
         await db.Database.MigrateAsync();
         if (!options.Enabled) return;
 
-        // Roles and the bootstrap admin are ALWAYS seeded — without them an empty
-        // database would have no way to sign in.
+        // Roles are global and always seeded. There is no bootstrap admin: organizations
+        // (and their first admin) are created via public registration.
         await SeedRolesAsync(roleManager);
-        await SeedAdminAsync(userManager, options);
 
         if (!options.DemoData) return;
 
+        // Everything demo lives inside one demo organization.
+        if (!await db.Organizations.AnyAsync(o => o.Id == DemoOrgId))
+        {
+            db.Organizations.Add(new Organization
+            {
+                Id = DemoOrgId,
+                Name = "eTech (Demo)",
+                Slug = "etech-demo",
+                IsActive = true,
+            });
+            await db.SaveChangesAsync();
+        }
+
         await SeedDemoUsersAsync(userManager, options.DemoPassword);
 
-        if (!await db.Clients.AnyAsync())
+        if (!await db.Clients.IgnoreQueryFilters().AnyAsync(c => c.OrganizationId == DemoOrgId))
         {
             SeedClientsAndProjects(db);
             SeedTasks(db);
@@ -48,32 +63,15 @@ public static class DbInitializer
             SeedTimesheets(db);
             SeedAuditLog(db);
             SeedNotifications(db);
+
+            // Stamp every new tenant row with the demo org (no HttpContext here, so the
+            // context's automatic stamping is inactive).
+            foreach (var entry in db.ChangeTracker.Entries<Tspm.Domain.Common.IHasOrganization>())
+                if (entry.State == EntityState.Added && entry.Entity.OrganizationId == Guid.Empty)
+                    entry.Entity.OrganizationId = DemoOrgId;
+
             await db.SaveChangesAsync();
         }
-    }
-
-    /// <summary>The bootstrap administrator. Idempotent.</summary>
-    private static async Task SeedAdminAsync(
-        UserManager<ApplicationUser> userManager,
-        SeedOptions options)
-    {
-        if (await userManager.FindByEmailAsync(options.AdminEmail) is not null) return;
-
-        var admin = new ApplicationUser
-        {
-            Id = Id($"user:{options.AdminEmail}"),
-            UserName = options.AdminEmail,
-            Email = options.AdminEmail,
-            EmailConfirmed = true,
-            FullName = options.AdminName,
-            Initials = InitialsOf(options.AdminName),
-            Title = "Administrator",
-            Department = "IT",
-            AvatarColor = "#161B26",
-            IsActive = true,
-        };
-        await userManager.CreateAsync(admin, options.AdminPassword);
-        await userManager.AddToRoleAsync(admin, Identity.Roles.Admin);
     }
 
     private static string InitialsOf(string name)
@@ -118,6 +116,7 @@ public static class DbInitializer
             var user = new ApplicationUser
             {
                 Id = Id($"user:{u.Key}"),
+                OrganizationId = DemoOrgId,
                 UserName = u.Email,
                 Email = u.Email,
                 EmailConfirmed = true,

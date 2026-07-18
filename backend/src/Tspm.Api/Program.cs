@@ -22,6 +22,7 @@ builder.Services.AddApplication();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddScoped<ICurrentTenant, CurrentTenant>();
 
 builder.Services.AddControllers(o =>
 {
@@ -103,8 +104,8 @@ static async Task SeedAsync(WebApplication app)
         app.Logger.LogInformation(
             "Database migrated. Seeding: {Mode}.",
             !options.Enabled ? "disabled"
-                : options.DemoData ? "roles + admin + demo data"
-                : "roles + admin only (clean workspace)");
+                : options.DemoData ? "roles + demo organization"
+                : "roles only — register to create an organization");
     }
     catch (Exception ex)
     {

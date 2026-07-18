@@ -4,8 +4,10 @@ using Tspm.Domain.Enums;
 namespace Tspm.Domain.Entities;
 
 /// <summary>A topbar notification for a user.</summary>
-public class Notification : Entity
+public class Notification : Entity, IHasOrganization
 {
+    public Guid OrganizationId { get; set; }
+
     public Guid UserId { get; set; }
 
     public string Title { get; set; } = string.Empty;
