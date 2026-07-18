@@ -93,7 +93,8 @@ export default function ChangePasswordPage() {
             {brand.logoMark}
           </div>
           <div style={{ fontSize: 15, fontWeight: 700 }}>
-            {brand.name} <span style={{ fontWeight: 500, color: 'var(--text3)' }}>{brand.suffix}</span>
+            {brand.name}
+            {brand.suffix && <span style={{ fontWeight: 500, color: 'var(--text3)' }}> {brand.suffix}</span>}
           </div>
         </div>
 

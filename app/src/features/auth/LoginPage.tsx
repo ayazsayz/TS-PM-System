@@ -107,8 +107,10 @@ export default function LoginPage() {
             {brand.logoMark}
           </div>
           <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.01em' }}>
-            {brand.name}{' '}
-            <span style={{ fontWeight: 500, color: 'rgba(255,255,255,.55)' }}>{brand.suffix}</span>
+            {brand.name}
+            {brand.suffix && (
+              <span style={{ fontWeight: 500, color: 'rgba(255,255,255,.55)' }}> {brand.suffix}</span>
+            )}
           </div>
         </div>
 

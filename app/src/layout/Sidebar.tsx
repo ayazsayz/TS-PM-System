@@ -38,7 +38,8 @@ export function Sidebar() {
       <div className={styles.brand}>
         <div className={styles.mark}>{brand.logoMark}</div>
         <div className={styles.brandName}>
-          {brand.name} <span className={styles.brandSuffix}>{brand.suffix}</span>
+          {brand.name}
+          {brand.suffix && <span className={styles.brandSuffix}> {brand.suffix}</span>}
         </div>
       </div>
 
