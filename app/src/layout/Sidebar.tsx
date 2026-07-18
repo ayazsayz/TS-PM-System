@@ -43,6 +43,14 @@ export function Sidebar() {
         </div>
       </div>
 
+      {/* Current organization (tenant) */}
+      {user?.organizationName && (
+        <div className={styles.workspace} title={user.organizationName}>
+          <div className={styles.workspaceMark}>{user.organizationName.charAt(0).toUpperCase()}</div>
+          <div className={styles.workspaceName}>{user.organizationName}</div>
+        </div>
+      )}
+
       <button className={styles.search} onClick={openPalette}>
         <Icon name="search" size={13} />
         Search

@@ -11,6 +11,7 @@ interface AuthState {
   loading: boolean;
 
   login: (email: string, password: string) => Promise<void>;
+  register: (organizationName: string, fullName: string, email: string, password: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
   /** Restore a session from a persisted token on app start. */
@@ -26,6 +27,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   login: async (email, password) => {
     const res = await authService.login(email, password);
+    set({
+      user: res.user,
+      isAuthed: true,
+      mustChangePassword: res.mustChangePassword,
+      loading: false,
+    });
+  },
+
+  register: async (organizationName, fullName, email, password) => {
+    const res = await authService.register(organizationName, fullName, email, password);
     set({
       user: res.user,
       isAuthed: true,

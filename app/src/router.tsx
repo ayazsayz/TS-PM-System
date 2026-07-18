@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom';
 import { AppShell } from '@/layout/AppShell';
 import { useAuthStore } from '@/store/useAuthStore';
 import LoginPage from '@/features/auth/LoginPage';
+import RegisterPage from '@/features/auth/RegisterPage';
 import ChangePasswordPage from '@/features/auth/ChangePasswordPage';
 import DashboardPage from '@/features/dashboard/DashboardPage';
 import DailyEntryPage from '@/features/daily/DailyEntryPage';
@@ -58,6 +59,14 @@ function LoginRoute() {
   return <LoginPage />;
 }
 
+/** Public signup. Authenticated users are sent to the app. */
+function RegisterRoute() {
+  const { isAuthed, loading } = useAuthStore();
+  if (loading) return <Loading />;
+  if (isAuthed) return <Navigate to="/dashboard" replace />;
+  return <RegisterPage />;
+}
+
 /** Reachable while restricted (forced change) and when voluntarily changing. */
 function ChangePasswordRoute() {
   const { isAuthed, loading } = useAuthStore();
@@ -69,6 +78,7 @@ function ChangePasswordRoute() {
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginRoute /> },
+  { path: '/register', element: <RegisterRoute /> },
   { path: '/change-password', element: <ChangePasswordRoute /> },
   {
     path: '/',
