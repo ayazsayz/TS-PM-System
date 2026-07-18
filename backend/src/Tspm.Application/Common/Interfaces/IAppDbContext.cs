@@ -9,6 +9,7 @@ namespace Tspm.Application.Common.Interfaces;
 /// </summary>
 public interface IAppDbContext
 {
+    DbSet<Organization> Organizations { get; }
     DbSet<Client> Clients { get; }
     DbSet<Project> Projects { get; }
     DbSet<ProjectMember> ProjectMembers { get; }

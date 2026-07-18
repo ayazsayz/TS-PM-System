@@ -10,12 +10,26 @@ namespace Tspm.Infrastructure.Identity;
 public class UserAdminService : IUserAdminService
 {
     private readonly UserManager<ApplicationUser> _users;
+    private readonly ICurrentTenant _tenant;
 
-    public UserAdminService(UserManager<ApplicationUser> users) => _users = users;
+    public UserAdminService(UserManager<ApplicationUser> users, ICurrentTenant tenant)
+    {
+        _users = users;
+        _tenant = tenant;
+    }
+
+    private Guid Tenant => _tenant.OrganizationId ?? Guid.Empty;
+
+    /// <summary>Finds a user only if they belong to the caller's organization.</summary>
+    private async Task<ApplicationUser?> FindInTenantAsync(Guid id)
+    {
+        var user = await _users.FindByIdAsync(id.ToString());
+        return user is not null && user.OrganizationId == Tenant ? user : null;
+    }
 
     public async Task<IReadOnlyList<AdminUserDto>> ListAsync(string? search, string? role, string? status)
     {
-        var query = _users.Users.AsNoTracking();
+        var query = _users.Users.AsNoTracking().Where(u => u.OrganizationId == Tenant);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -42,7 +56,7 @@ public class UserAdminService : IUserAdminService
 
     public async Task<AdminUserDto?> GetAsync(Guid id)
     {
-        var user = await _users.FindByIdAsync(id.ToString());
+        var user = await FindInTenantAsync(id);
         if (user is null) return null;
         return Map(user, await _users.GetRolesAsync(user));
     }
@@ -58,6 +72,7 @@ public class UserAdminService : IUserAdminService
         var user = new ApplicationUser
         {
             Id = Guid.NewGuid(),
+            OrganizationId = Tenant,
             UserName = email,
             Email = email,
             EmailConfirmed = true,
@@ -82,7 +97,7 @@ public class UserAdminService : IUserAdminService
 
     public async Task<AdminUserDto?> UpdateAsync(Guid id, UpdateUserRequest request)
     {
-        var user = await _users.FindByIdAsync(id.ToString());
+        var user = await FindInTenantAsync(id);
         if (user is null) return null;
 
         user.FullName = request.FullName.Trim();
@@ -97,7 +112,7 @@ public class UserAdminService : IUserAdminService
 
     public async Task<AdminUserDto?> SetRolesAsync(Guid id, IReadOnlyList<string> roles, Guid actingUserId)
     {
-        var user = await _users.FindByIdAsync(id.ToString());
+        var user = await FindInTenantAsync(id);
         if (user is null) return null;
 
         if (id == actingUserId)
@@ -118,7 +133,7 @@ public class UserAdminService : IUserAdminService
 
     public async Task<AdminUserDto?> SetActiveAsync(Guid id, bool isActive, Guid actingUserId)
     {
-        var user = await _users.FindByIdAsync(id.ToString());
+        var user = await FindInTenantAsync(id);
         if (user is null) return null;
 
         if (id == actingUserId && !isActive)
@@ -133,7 +148,7 @@ public class UserAdminService : IUserAdminService
 
     public async Task<string?> ResetPasswordAsync(Guid id)
     {
-        var user = await _users.FindByIdAsync(id.ToString());
+        var user = await FindInTenantAsync(id);
         if (user is null) return null;
 
         var oneTimePassword = PasswordGenerator.Generate();
@@ -151,10 +166,12 @@ public class UserAdminService : IUserAdminService
         return oneTimePassword;
     }
 
-    /// <summary>Throws if the given user is the last active admin.</summary>
+    /// <summary>Throws if the given user is the last active admin <em>in their organization</em>.</summary>
     private async Task EnsureNotLastAdminAsync(ApplicationUser user)
     {
-        var admins = await _users.GetUsersInRoleAsync(AppRoles.Admin);
+        var admins = (await _users.GetUsersInRoleAsync(AppRoles.Admin))
+            .Where(a => a.OrganizationId == Tenant)
+            .ToList();
         var otherActiveAdmins = admins.Count(a => a.Id != user.Id && a.IsActive);
         if (admins.Any(a => a.Id == user.Id) && otherActiveAdmins == 0)
             throw AppException.BadRequest("This is the last active administrator — assign another admin first.");

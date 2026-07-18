@@ -3,8 +3,10 @@ using Tspm.Domain.Common;
 namespace Tspm.Domain.Entities;
 
 /// <summary>An item in the dashboard "My tasks" checklist.</summary>
-public class TodoTask : Entity
+public class TodoTask : Entity, IHasOrganization
 {
+    public Guid OrganizationId { get; set; }
+
     public Guid UserId { get; set; }
 
     public Guid? ProjectId { get; set; }

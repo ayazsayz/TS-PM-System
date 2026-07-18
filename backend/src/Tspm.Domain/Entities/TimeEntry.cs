@@ -6,8 +6,10 @@ namespace Tspm.Domain.Entities;
 /// A single logged time entry. Powers both the daily grid and the weekly grid
 /// (the weekly view groups entries by project within a week).
 /// </summary>
-public class TimeEntry : Entity
+public class TimeEntry : Entity, IHasOrganization
 {
+    public Guid OrganizationId { get; set; }
+
     public Guid UserId { get; set; }
 
     public Guid ProjectId { get; set; }

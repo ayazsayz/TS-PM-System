@@ -9,6 +9,7 @@ public interface ITokenService
     /// </summary>
     (string Token, DateTime ExpiresAt) CreateAccessToken(
         Guid userId,
+        Guid organizationId,
         string email,
         string fullName,
         IEnumerable<string> roles,
@@ -21,4 +22,7 @@ public interface ITokenService
 
     /// <summary>Claim type marking a password-change-only (restricted) token.</summary>
     const string MustChangePasswordClaim = "must_change_password";
+
+    /// <summary>Claim type carrying the caller's organization (tenant) id.</summary>
+    const string OrganizationClaim = "org";
 }
