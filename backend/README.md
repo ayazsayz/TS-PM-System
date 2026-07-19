@@ -223,6 +223,32 @@ Approving/rejecting updates the timesheet, writes an **audit-log entry**, and ra
 **Password change** (any signed-in user)
 - `POST /api/auth/change-password` — serves both the *forced* first-login change and a *voluntary* change
 
+**Attendance**
+- `GET /api/attendance/today?localDate=YYYY-MM-DD` — open session + today's sessions + total minutes
+- `POST /api/attendance/check-in` · `POST /api/attendance/check-out` — body carries the captured position
+- `GET /api/attendance/history?from=&to=` — the signed-in user's sessions
+- `GET /api/attendance/team?localDate=` *(Manager/Admin)* — who's in today
+
+**Offices** *(Admin only, except the read)*
+- `GET /api/offices` · `POST /api/offices` · `PUT /api/offices/{id}` · `DELETE /api/offices/{id}`
+
+### Attendance & location (how it works)
+- An **office** is a geofence: a coordinate plus a `RadiusMeters` (default 150).
+- On check-in/out the client sends its position; the **server** computes the label by haversine
+  distance to each active office — the nearest office within its radius wins. The client
+  **cannot assert** that it was in the office, it only reports raw coordinates.
+- Position is stored **per event** (in *and* out), with accuracy in metres, so a check-out
+  somewhere else is visible rather than overwriting the check-in location.
+- `LocationStatus` records *why* a position is missing — `Provided`, `Denied`, `Unavailable` —
+  so a denied permission is distinguishable from a failed GPS fix. **Location is never required**;
+  a check-in without it still succeeds and is labelled `Unknown`.
+- `LocalDate` is supplied by the client so day grouping follows the **user's** calendar day,
+  not the server's timezone. Timestamps themselves are UTC.
+- A filtered unique index (`UX_AttendanceSessions_OpenPerUser`, `WHERE CheckOutAt IS NULL`)
+  makes "at most one open session per user" a **database** guarantee, not just a service check.
+- Offices that already have attendance recorded against them **cannot be deleted** — deactivate
+  them instead, so history keeps its labels.
+
 ### One-time-password flow (how it's enforced)
 1. An admin creates a user → the API generates a random OTP and sets `MustChangePassword`.
 2. The user logs in with the OTP. The access token carries a **`must_change_password` claim**
@@ -278,6 +304,19 @@ dotnet test  Tspm.slnx
 ## Changelog
 
 Newest first.
+
+### 2026-07-19 — Attendance: check-in/out with location
+- **New entities** — `Office` (name, coordinates, radius, active flag) and `AttendanceSession`
+  (per-event position, accuracy, `LocationStatus`, matched office and `Place` label). Both are
+  tenant-scoped through `IHasOrganization`, so isolation is inherited, not re-implemented.
+- **Server-side location resolution** (`AttendanceService.ResolveLocationAsync`) — the `Place`
+  label is derived from raw coordinates via haversine (`GeoDistance.MetersBetween`); the client
+  never gets to claim it was in the office.
+- **One open session per user** enforced by a filtered unique index, so a double check-in fails
+  at the database even if two requests race.
+- **Office FKs use `NoAction`** — SQL Server rejects two cascade paths from `Offices` to
+  `AttendanceSessions`, and deletes are blocked by the service anyway.
+- Endpoints: `attendance/today|check-in|check-out|history|team` and `offices` CRUD.
 
 ### 2026-07-18 — Multi-tenancy: organizations
 - The API is now multi-tenant. New `Organization` entity; `OrganizationId` on every tenant

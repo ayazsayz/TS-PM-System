@@ -12,6 +12,8 @@ import ApprovalsPage from '@/features/approvals/ApprovalsPage';
 import ProjectsPage from '@/features/projects/ProjectsPage';
 import ReportsPage from '@/features/reports/ReportsPage';
 import UsersPage from '@/features/admin/UsersPage';
+import OfficesPage from '@/features/admin/OfficesPage';
+import AttendancePage from '@/features/attendance/AttendancePage';
 
 /** Full-page spinner while the session is being restored from a stored token. */
 function Loading() {
@@ -88,6 +90,7 @@ export const router = createBrowserRouter([
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'daily', element: <DailyEntryPage /> },
       { path: 'weekly', element: <WeeklyTimesheetPage /> },
+      { path: 'attendance', element: <AttendancePage /> },
       { path: 'team', element: <ManagerDashboardPage /> },
       { path: 'approvals', element: <ApprovalsPage /> },
       { path: 'projects', element: <ProjectsPage /> },
@@ -97,6 +100,14 @@ export const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <UsersPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: 'admin/offices',
+        element: (
+          <AdminRoute>
+            <OfficesPage />
           </AdminRoute>
         ),
       },

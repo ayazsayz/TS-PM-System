@@ -142,11 +142,13 @@ Path alias: `@/` → `src/` (configured in `vite.config.ts` and `tsconfig.app.js
 | `/dashboard` | Employee Dashboard | All |
 | `/daily` | Daily Timesheet Entry | All |
 | `/weekly` | Weekly Timesheet | All |
+| `/attendance` | Attendance — today + last 30 days | All |
 | `/projects` | Projects + Clients | view: All · manage: Manager/Admin |
 | `/team` | Team Overview | Manager/Admin |
 | `/approvals` | Approvals | Manager/Admin |
 | `/reports` | Reports | Manager/Admin |
 | `/admin/users` | User Management | Admin |
+| `/admin/offices` | Offices (check-in geofences) | Admin |
 
 Every screen has explicit **loading, error and empty** states, so a fresh workspace reads as
 intentional rather than broken.
@@ -267,6 +269,25 @@ the default palette, also update `defaultAccent` (or edit the accent options in
 ## Changelog
 
 Newest first. Update this on every meaningful change.
+
+### 2026-07-19 — Attendance: check in / out with location
+- **Top-bar check-in widget** (`layout/CheckInWidget.tsx`) — a status pill plus a check in/out
+  button on every screen; the elapsed time ticks each minute.
+- **New `/attendance` page** — today's card plus the last 30 days grouped by date. Each event
+  shows where it happened (office name or “Off-site”), the GPS accuracy as `±Nm`, and links out
+  to Google Maps.
+- **New Admin → Offices page** — manage geofences, with a **“Use my current location”** button
+  so you can stand in the office and capture its coordinates instead of looking them up.
+- **Team Overview gains “Who's in today”** — live presence for managers.
+- **Daily Entry shows a present-vs-logged hint** — informational only, never enforced, and
+  hidden entirely when nothing is recorded yet.
+- **Location is always optional.** `captureLocation()` never rejects — a denied permission or a
+  failed fix resolves to a status the UI reports honestly, and the check-in still goes through.
+- **Fixed a latent modal bug affecting every dialog in the app.** `Modal` now renders through a
+  **React portal to `document.body`**. `PageContainer`'s fade-in animation leaves a non-`none`
+  identity `transform`, which makes it the containing block for `position: fixed` descendants —
+  so modal backdrops were being clipped to the page area instead of covering the viewport
+  (measured: `1202×241` inside a `1440×1000` window; now correctly `1440×1000`).
 
 ### 2026-07-18 — Cadence rebrand + multi-tenant organizations
 - **Rebranded the product to Cadence** (`brand.ts`); each tenant organization keeps its own

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge, Button, Card, CardHeader, KpiCard, PageContainer, type Tone } from '@/components';
 import { ApiError } from '@/lib/apiClient';
+import { attendanceService, formatMinutes, type TeamPresence } from '@/services/attendanceService';
 import { projectsService, type Project } from '@/services/projectsService';
 import {
   dashboardService,
@@ -33,6 +34,7 @@ export default function ManagerDashboardPage() {
   const [missing, setMissing] = useState<MissingTimesheet[]>([]);
   const [performers, setPerformers] = useState<TopPerformer[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [presence, setPresence] = useState<TeamPresence[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,18 +42,20 @@ export default function ManagerDashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const [d, u, m, p, projs] = await Promise.all([
+      const [d, u, m, p, projs, pres] = await Promise.all([
         dashboardService.manager(),
         teamService.utilization(),
         teamService.missing(),
         teamService.topPerformers(),
         projectsService.list(),
+        attendanceService.team().catch(() => [] as TeamPresence[]),
       ]);
       setData(d);
       setUtilization(u);
       setMissing(m);
       setPerformers(p);
       setProjects(projs);
+      setPresence(pres);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not load the team overview.');
     } finally {
@@ -272,6 +276,74 @@ export default function ManagerDashboardPage() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* WHO'S IN TODAY */}
+          <Card>
+            <CardHeader
+              title="Who’s in today"
+              action={
+                <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+                  {presence.filter((p) => p.status === 'Checked in').length} in
+                </div>
+              }
+            />
+            {presence.length === 0 && (
+              <div style={{ fontSize: 13, color: 'var(--text3)' }}>No attendance recorded today.</div>
+            )}
+            {presence.map((p, i) => {
+              const isIn = p.status === 'Checked in';
+              return (
+                <div
+                  key={p.userId}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '9px 0',
+                    borderBottom: i < presence.length - 1 ? '1px solid var(--border)' : undefined,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: 99,
+                      background: isIn ? 'var(--green)' : 'var(--border2)',
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 99,
+                      background: p.avatarColor,
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {p.initials}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
+                      {isIn ? p.officeName ?? (p.place === 'InOffice' ? 'In office' : p.place === 'OffSite' ? 'Off-site' : 'No location') : p.status}
+                    </div>
+                  </div>
+                  {p.totalMinutes > 0 && (
+                    <span className="tnum" style={{ fontSize: 12.5, fontWeight: 700, color: isIn ? 'var(--green)' : 'var(--text2)' }}>
+                      {formatMinutes(p.totalMinutes)}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </Card>
+
           <Card>
             <div style={{ fontSize: 14.5, fontWeight: 650, marginBottom: 12 }}>Missing timesheets</div>
             {missing.length === 0 && (
