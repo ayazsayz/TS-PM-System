@@ -1,5 +1,6 @@
 using FluentValidation;
 using Tspm.Application.Admin;
+using Tspm.Application.Attendance;
 using Tspm.Application.Auth;
 using Tspm.Application.Clients;
 using Tspm.Application.Projects;
@@ -7,6 +8,18 @@ using Tspm.Application.Tasks;
 using Tspm.Application.TimeEntries;
 
 namespace Tspm.Application.Validation;
+
+public class UpsertOfficeRequestValidator : AbstractValidator<UpsertOfficeRequest>
+{
+    public UpsertOfficeRequestValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(120);
+        RuleFor(x => x.Latitude).InclusiveBetween(-90, 90).WithMessage("Latitude must be between -90 and 90.");
+        RuleFor(x => x.Longitude).InclusiveBetween(-180, 180).WithMessage("Longitude must be between -180 and 180.");
+        RuleFor(x => x.RadiusMeters).InclusiveBetween(10, 100_000)
+            .WithMessage("Radius must be between 10 m and 100 km.");
+    }
+}
 
 public class UpsertClientRequestValidator : AbstractValidator<UpsertClientRequest>
 {

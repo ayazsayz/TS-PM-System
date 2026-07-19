@@ -18,6 +18,8 @@ public interface IAppDbContext
     DbSet<TodoTask> TodoTasks { get; }
     DbSet<AuditLogEntry> AuditLog { get; }
     DbSet<Notification> Notifications { get; }
+    DbSet<Office> Offices { get; }
+    DbSet<AttendanceSession> AttendanceSessions { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

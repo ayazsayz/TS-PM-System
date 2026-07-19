@@ -27,6 +27,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
     public DbSet<TodoTask> TodoTasks => Set<TodoTask>();
     public DbSet<AuditLogEntry> AuditLog => Set<AuditLogEntry>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<Office> Offices => Set<Office>();
+    public DbSet<AttendanceSession> AttendanceSessions => Set<AttendanceSession>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -113,6 +115,29 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
             e.HasIndex(n => new { n.UserId, n.IsRead });
         });
 
+        b.Entity<Office>(e =>
+        {
+            e.Property(o => o.Name).HasMaxLength(120).IsRequired();
+            e.HasIndex(o => new { o.OrganizationId, o.Name });
+        });
+
+        b.Entity<AttendanceSession>(e =>
+        {
+            e.HasIndex(a => new { a.UserId, a.LocalDate });
+            // At most one open session per user (filtered unique index).
+            e.HasIndex(a => a.UserId)
+                .IsUnique()
+                .HasFilter("[CheckOutAt] IS NULL")
+                .HasDatabaseName("UX_AttendanceSessions_OpenPerUser");
+            // NoAction: SQL Server rejects multiple cascade paths (two office FKs plus the
+            // organization FK). Offices are deactivated rather than deleted, and the service
+            // refuses to delete one that attendance history references.
+            e.HasOne<Office>().WithMany().HasForeignKey(a => a.CheckInOfficeId)
+                .OnDelete(DeleteBehavior.NoAction);
+            e.HasOne<Office>().WithMany().HasForeignKey(a => a.CheckOutOfficeId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
         // ---- Tenancy: FK + index + global query filter on every tenant entity ----
         // ApplicationUser carries OrganizationId too, but is intentionally NOT filtered —
         // login must find a user by (globally-unique) email before a tenant is known.
@@ -129,6 +154,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
         ConfigureTenant<TodoTask>(b);
         ConfigureTenant<AuditLogEntry>(b);
         ConfigureTenant<Notification>(b);
+        ConfigureTenant<Office>(b);
+        ConfigureTenant<AttendanceSession>(b);
     }
 
     private void ConfigureTenant<T>(ModelBuilder b) where T : class, IHasOrganization
