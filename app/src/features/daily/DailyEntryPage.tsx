@@ -12,6 +12,7 @@ import {
   weekDates,
 } from '@/lib/dates';
 import { computeHours } from '@/lib/time';
+import { attendanceService, formatMinutes } from '@/services/attendanceService';
 import { projectsService, type Project } from '@/services/projectsService';
 import { timeEntriesService, type TimeEntry } from '@/services/timesheetService';
 import { useUiStore } from '@/store/useUiStore';
@@ -37,6 +38,8 @@ export default function DailyEntryPage() {
   const [error, setError] = useState<string | null>(null);
   /** Ids currently being saved — drives the subtle row "saving" hint. */
   const [saving, setSaving] = useState<Set<string>>(new Set());
+  /** Minutes present (from attendance) for the selected day — shown as a hint only. */
+  const [presentMinutes, setPresentMinutes] = useState<number | null>(null);
 
   const days = weekDates(date);
 
@@ -56,6 +59,14 @@ export default function DailyEntryPage() {
       const totals: Record<string, number> = {};
       for (const e of weekEntries) totals[e.date] = (totals[e.date] ?? 0) + e.hours;
       setWeekTotals(totals);
+
+      // Attendance is a hint here, never a requirement — failures are non-fatal.
+      try {
+        const day = await attendanceService.today(date);
+        setPresentMinutes(day.totalMinutes);
+      } catch {
+        setPresentMinutes(null);
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not load entries.');
     } finally {
@@ -261,6 +272,30 @@ export default function DailyEntryPage() {
           <span style={{ fontSize: 12.5, fontWeight: 600, color: remainColor }}>{remainLabel}</span>
         </div>
         <ProgressBar value={Math.min(100, (dayTotal / DAY_TARGET) * 100)} color={barColor} />
+
+        {/* Attendance vs logged time — informational, never enforced. */}
+        {presentMinutes !== null && presentMinutes > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+              marginTop: 10,
+              fontSize: 12,
+              color: 'var(--text3)',
+            }}
+          >
+            <Icon name="clock" size={12} />
+            <span>
+              Present <strong style={{ color: 'var(--text2)' }}>{formatMinutes(presentMinutes)}</strong> ·
+              logged <strong style={{ color: 'var(--text2)' }}>{fmt(dayTotal)}h</strong>
+              {(() => {
+                const gap = presentMinutes - Math.round(dayTotal * 60);
+                return gap >= 15 ? ` · ${formatMinutes(gap)} unaccounted` : '';
+              })()}
+            </span>
+          </div>
+        )}
       </Card>
 
       {/* ENTRY GRID */}

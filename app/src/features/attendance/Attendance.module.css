@@ -1,0 +1,190 @@
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.title {
+  margin: 0 0 4px;
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.subtitle {
+  font-size: 13px;
+  color: var(--text3);
+}
+.cardTitle {
+  font-size: 14.5px;
+  font-weight: 650;
+}
+
+.todayHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.total {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.session {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13.5px;
+  flex-wrap: wrap;
+}
+.session:last-child {
+  border-bottom: none;
+}
+.sessionCompact {
+  padding: 8px 2px;
+  font-size: 13px;
+}
+
+.times {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  min-width: 150px;
+}
+.arrow {
+  color: var(--text3);
+}
+.openNow {
+  color: var(--green);
+  font-style: normal;
+  font-weight: 600;
+}
+
+.duration {
+  color: var(--text2);
+  font-weight: 600;
+  min-width: 70px;
+}
+
+.chipWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.mapLink {
+  font-size: 11.5px;
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.mapLink:hover {
+  text-decoration: underline;
+}
+
+.dayGroup {
+  margin-bottom: 14px;
+}
+.dayHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+.dayLabel {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text2);
+}
+.dayTotal {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text3);
+}
+
+.empty {
+  padding: 26px 8px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--text3);
+}
+
+/* --- offices --- */
+.officeRow {
+  display: grid;
+  grid-template-columns: 1.4fr 1.6fr 110px 100px 130px;
+  align-items: center;
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.officeName {
+  font-weight: 600;
+}
+.coords {
+  font-size: 12px;
+  color: var(--text2);
+}
+.actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.linkBtn {
+  border: none;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent-text);
+  cursor: pointer;
+}
+.linkBtn:hover {
+  text-decoration: underline;
+}
+.danger {
+  color: var(--red);
+}
+
+.field {
+  margin-bottom: 14px;
+}
+.label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  font-size: 14px;
+}
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.hint {
+  font-size: 11.5px;
+  color: var(--text3);
+  margin-top: 5px;
+}
+.formError {
+  background: var(--red-soft);
+  color: var(--red);
+  border: 1px solid var(--red);
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  margin-bottom: 14px;
+}

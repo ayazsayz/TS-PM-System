@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon } from './Icon';
 
 interface ModalProps {
@@ -34,7 +35,10 @@ export function Modal({
     };
   }, [onClose, dismissible]);
 
-  return (
+  // Rendered through a portal to <body>. A `position: fixed` overlay is trapped by
+  // any ancestor with a transform/filter (our page fade-in animation leaves an
+  // identity transform), which would clip the backdrop to the page container.
+  return createPortal(
     <div
       onClick={() => dismissible && onClose()}
       style={{
@@ -116,6 +120,7 @@ export function Modal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -5,6 +5,7 @@ import { titleByPath } from '@/config/nav';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUiStore } from '@/store/useUiStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { CheckInWidget } from './CheckInWidget';
 import { NotificationPanel } from './NotificationPanel';
 import styles from './TopBar.module.css';
 
@@ -31,6 +32,7 @@ export function TopBar() {
     <header className={styles.topbar}>
       <div className={styles.title}>{title}</div>
       <div className={styles.actions}>
+        <CheckInWidget />
         <div className={styles.iconBtn} title="Toggle theme" onClick={toggleTheme}>
           <Icon name={theme === 'light' ? 'sun' : 'moon'} size={15} />
         </div>

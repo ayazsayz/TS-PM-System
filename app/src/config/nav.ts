@@ -25,6 +25,7 @@ export const navSections: NavSection[] = [
       { path: 'dashboard', label: 'Dashboard', icon: 'dashboard', title: 'Dashboard' },
       { path: 'daily', label: 'Daily Entry', icon: 'clock', title: 'Daily Timesheet' },
       { path: 'weekly', label: 'Weekly Timesheet', icon: 'calendar', title: 'Weekly Timesheet' },
+      { path: 'attendance', label: 'Attendance', icon: 'clock', title: 'Attendance' },
     ],
   },
   {
@@ -41,6 +42,7 @@ export const navSections: NavSection[] = [
     requiresRole: 'Admin',
     items: [
       { path: 'admin/users', label: 'Users', icon: 'team', title: 'User Management' },
+      { path: 'admin/offices', label: 'Offices', icon: 'folder', title: 'Offices' },
     ],
   },
 ];
