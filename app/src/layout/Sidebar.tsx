@@ -25,8 +25,14 @@ export function Sidebar() {
     if (isManager) void refreshApprovals();
   }, [isManager, refreshApprovals]);
 
-  // Role-gated sections (e.g. ADMIN) are hidden for users without the role.
-  const sections = navSections.filter((s) => !s.requiresRole || hasRole(s.requiresRole));
+  // Role-gated sections (e.g. MANAGEMENT, ADMIN) are hidden for users without the role.
+  const sections = navSections.filter((section) => {
+    if (!section.requiresRole) return true;
+    if (Array.isArray(section.requiresRole)) {
+      return section.requiresRole.some((role) => hasRole(role));
+    }
+    return hasRole(section.requiresRole);
+  });
 
   const doLogout = async () => {
     await logout();

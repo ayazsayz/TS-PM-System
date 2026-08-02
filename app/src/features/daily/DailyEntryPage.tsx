@@ -53,8 +53,44 @@ export default function DailyEntryPage() {
         timeEntriesService.byWeek(weekStart),
         projectsService.list(),
       ]);
+
+      // Ensure any projects referenced by the returned entries are present
+      // in the project list (e.g. archived projects). If a project's missing
+      // the select would fall back to the first option — implement a safe
+      // merge so each entry's `projectId` can be resolved to an option.
+      const projMap = new Map(projs.map((p) => [p.id, p]));
+      for (const e of dayEntries) {
+        if (e.projectId && !projMap.has(e.projectId)) {
+          // Create a lightweight project placeholder from the entry metadata.
+          const placeholder = {
+            id: e.projectId,
+            name: e.projectName ?? 'Unknown project',
+            clientId: '',
+            client: '',
+            colorHex: (e as any).projectColor ?? '#475467',
+            estimatedHours: 0,
+            actualHours: 0,
+            remainingHours: 0,
+            budget: 0,
+            hourlyRate: 0,
+            spent: 0,
+            budgetPercent: 0,
+            due: null,
+            health: 'On track' as const,
+            completionPct: 0,
+            warn: null,
+            isInternal: false,
+            isArchived: false,
+            team: [],
+          } as Project;
+          projMap.set(e.projectId, placeholder);
+        }
+      }
+
+      const mergedProjects = Array.from(projMap.values());
+
       setEntries(dayEntries);
-      setProjects(projs);
+      setProjects(mergedProjects);
 
       const totals: Record<string, number> = {};
       for (const e of weekEntries) totals[e.date] = (totals[e.date] ?? 0) + e.hours;
@@ -96,6 +132,22 @@ export default function DailyEntryPage() {
           const computed = computeHours(next.start, next.end, next.break);
           if (computed !== null) next.hours = computed;
         }
+        // If the project was changed locally, also update the row's colour
+        // immediately from the available projects so the UI reflects the
+        // selection before the server round-trip completes.
+        if (field === 'projectId') {
+          const pid = String(value ?? '');
+          next.projectId = pid;
+          const p = projects.find((x) => String(x.id) === pid);
+          if (p) next.projectColor = (p as any).colorHex ?? (p as any).color ?? '#475467';
+          console.debug('DailyEntry: editLocal projectId', {
+            rowId: id,
+            selectedValue: pid,
+            projectOptions: projects.map((proj) => ({ id: String(proj.id), name: proj.name })),
+            matchedProject: p ? { id: String(p.id), name: p.name } : null,
+          });
+        }
+
         return next;
       }),
     );
@@ -105,13 +157,17 @@ export default function DailyEntryPage() {
    * deliberately does NOT call load(), which used to blank the whole grid
    * on every keystroke-commit.
    */
-  const save = async (id: string) => {
-    const entry = entries.find((e) => e.id === id);
-    if (!entry) return;
+  const saveEntry = async (entry: TimeEntry) => {
+    console.debug('DailyEntry: saveEntry called', {
+      rowId: entry.id,
+      entryProjectId: entry.projectId,
+      entryProjectColor: entry.projectColor,
+      projectOptions: projects.map((proj) => ({ id: String(proj.id), name: proj.name })),
+    });
 
-    setSaving((s) => new Set(s).add(id));
+    setSaving((s) => new Set(s).add(entry.id));
     try {
-      const saved = await timeEntriesService.update(id, {
+      const saved = await timeEntriesService.update(entry.id, {
         projectId: entry.projectId,
         date: entry.date,
         task: entry.task,
@@ -122,17 +178,23 @@ export default function DailyEntryPage() {
         billable: entry.billable,
         hours: Number(entry.hours) || 0,
       });
-      setEntries((prev) => prev.map((e) => (e.id === id ? saved : e)));
+      setEntries((prev) => prev.map((e) => (e.id === entry.id ? saved : e)));
     } catch (err) {
       fail(err);
       void load(); // fall back to server truth
     } finally {
       setSaving((s) => {
         const n = new Set(s);
-        n.delete(id);
+        n.delete(entry.id);
         return n;
       });
     }
+  };
+
+  const save = async (id: string) => {
+    const entry = entries.find((e) => e.id === id);
+    if (!entry) return;
+    await saveEntry(entry);
   };
 
   const addEntry = async () => {
@@ -377,15 +439,29 @@ export default function DailyEntryPage() {
                   />
                   <select
                     className={styles.projectSelect}
-                    value={e.projectId}
+                    value={String(e.projectId ?? '')}
                     onChange={(ev) => {
-                      editLocal(e.id, 'projectId', ev.target.value);
-                      // selects have no "commit" moment — save immediately
-                      setTimeout(() => void save(e.id), 0);
+                      const val = String(ev.target.value);
+                      const selectedProject = projects.find((proj) => String(proj.id) === val);
+                      console.debug('DailyEntry: select change', {
+                        rowId: e.id,
+                        selectedValue: val,
+                        entryProjectId: e.projectId,
+                        options: projects.map((proj) => ({ id: String(proj.id), name: proj.name })),
+                        selectedProject: selectedProject ? { id: String(selectedProject.id), name: selectedProject.name } : null,
+                      });
+                      editLocal(e.id, 'projectId', val);
+                    }}
+                    onBlur={() => {
+                      const entry = entries.find((x) => x.id === e.id);
+                      if (entry) {
+                        console.debug('DailyEntry: select blur save', { rowId: e.id, projectId: entry.projectId });
+                        void saveEntry(entry);
+                      }
                     }}
                   >
                     {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
+                      <option key={p.id} value={String(p.id)}>
                         {p.name}
                       </option>
                     ))}

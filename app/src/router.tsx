@@ -46,6 +46,13 @@ function ProtectedShell() {
   return <AppShell />;
 }
 
+/** Manager-or-admin routes. Employees are bounced to the dashboard. */
+function ManagerRoute({ children }: { children: React.ReactNode }) {
+  const hasRole = useAuthStore((s) => s.hasRole);
+  if (!hasRole('Manager') && !hasRole('Admin')) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
 /** Admin-only routes. Non-admins are bounced to the dashboard. */
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const hasRole = useAuthStore((s) => s.hasRole);
@@ -91,10 +98,38 @@ export const router = createBrowserRouter([
       { path: 'daily', element: <DailyEntryPage /> },
       { path: 'weekly', element: <WeeklyTimesheetPage /> },
       { path: 'attendance', element: <AttendancePage /> },
-      { path: 'team', element: <ManagerDashboardPage /> },
-      { path: 'approvals', element: <ApprovalsPage /> },
-      { path: 'projects', element: <ProjectsPage /> },
-      { path: 'reports', element: <ReportsPage /> },
+      {
+        path: 'team',
+        element: (
+          <ManagerRoute>
+            <ManagerDashboardPage />
+          </ManagerRoute>
+        ),
+      },
+      {
+        path: 'approvals',
+        element: (
+          <ManagerRoute>
+            <ApprovalsPage />
+          </ManagerRoute>
+        ),
+      },
+      {
+        path: 'projects',
+        element: (
+          <ManagerRoute>
+            <ProjectsPage />
+          </ManagerRoute>
+        ),
+      },
+      {
+        path: 'reports',
+        element: (
+          <ManagerRoute>
+            <ReportsPage />
+          </ManagerRoute>
+        ),
+      },
       {
         path: 'admin/users',
         element: (
