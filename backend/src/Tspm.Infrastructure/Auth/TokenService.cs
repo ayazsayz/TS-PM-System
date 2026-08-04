@@ -51,6 +51,44 @@ public class TokenService : ITokenService
         return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
     }
 
+    public (string Token, DateTime ExpiresAt) CreateImpersonationAccessToken(
+        Guid userId,
+        Guid organizationId,
+        string email,
+        string fullName,
+        IEnumerable<string> roles,
+        Guid impersonatorId,
+        string impersonatorEmail)
+    {
+        // Deliberately shorter-lived than a normal session.
+        var expiresAt = DateTime.UtcNow.AddMinutes(Math.Min(_settings.AccessTokenMinutes, 30));
+
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, userId.ToString()),
+            new(ClaimTypes.NameIdentifier, userId.ToString()),
+            new(ITokenService.OrganizationClaim, organizationId.ToString()),
+            new(JwtRegisteredClaimNames.Email, email),
+            new(ClaimTypes.Name, fullName),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(ITokenService.ImpersonatorClaim, impersonatorId.ToString()),
+            new(ITokenService.ImpersonatorEmailClaim, impersonatorEmail),
+        };
+        claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.EffectiveSigningKey));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var token = new JwtSecurityToken(
+            issuer: _settings.Issuer,
+            audience: _settings.Audience,
+            claims: claims,
+            expires: expiresAt,
+            signingCredentials: creds);
+
+        return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
+    }
+
     public string CreateRefreshToken()
     {
         var bytes = RandomNumberGenerator.GetBytes(64);

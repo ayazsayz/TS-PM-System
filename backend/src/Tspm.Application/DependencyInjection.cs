@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using Tspm.Application.Approvals;
+using Tspm.Application.SuperAdmin;
 using Tspm.Application.Attendance;
 using Tspm.Application.Clients;
 using Tspm.Application.Dashboard;
@@ -30,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IAttendanceService, AttendanceService>();
         services.AddScoped<IOfficeService, OfficeService>();
+        services.AddScoped<ISuperAdminService, SuperAdminService>();
 
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
         return services;

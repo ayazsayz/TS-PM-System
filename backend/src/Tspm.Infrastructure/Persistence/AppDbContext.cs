@@ -29,6 +29,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Office> Offices => Set<Office>();
     public DbSet<AttendanceSession> AttendanceSessions => Set<AttendanceSession>();
+    public DbSet<Plan> Plans => Set<Plan>();
+    public DbSet<Subscription> Subscriptions => Set<Subscription>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -136,6 +138,31 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
                 .OnDelete(DeleteBehavior.NoAction);
             e.HasOne<Office>().WithMany().HasForeignKey(a => a.CheckOutOfficeId)
                 .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        // Platform-scoped (no tenant filter): plans are shared across the whole platform,
+        // subscriptions link a tenant to a plan and are managed only by SuperAdmin.
+        b.Entity<Plan>(e =>
+        {
+            e.Property(p => p.Code).HasMaxLength(40).IsRequired();
+            e.Property(p => p.Name).HasMaxLength(120).IsRequired();
+            e.Property(p => p.Description).HasMaxLength(512);
+            e.Property(p => p.Currency).HasMaxLength(3).IsRequired();
+            e.Property(p => p.Features).HasMaxLength(512);
+            e.Property(p => p.MonthlyPrice).HasPrecision(18, 2);
+            e.Property(p => p.YearlyPrice).HasPrecision(18, 2);
+            e.HasIndex(p => p.Code).IsUnique();
+        });
+
+        b.Entity<Subscription>(e =>
+        {
+            e.HasOne(s => s.Organization).WithMany().HasForeignKey(s => s.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.Plan).WithMany().HasForeignKey(s => s.PlanId)
+                .OnDelete(DeleteBehavior.Restrict);
+            // One active subscription per organization is enforced in the service layer,
+            // but historical rows are kept for auditing.
+            e.HasIndex(s => s.OrganizationId);
         });
 
         // ---- Tenancy: FK + index + global query filter on every tenant entity ----

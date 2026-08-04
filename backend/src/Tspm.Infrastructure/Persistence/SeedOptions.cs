@@ -21,4 +21,9 @@ public class SeedOptions
 
     /// <summary>Password used for the demo users (only when <see cref="DemoData"/> is on).</summary>
     public string DemoPassword { get; set; } = "Passw0rd!";
+
+    /// <summary>Platform SuperAdmin — always created so the admin portal can never be locked out.</summary>
+    public string SuperAdminEmail { get; set; } = "superadmin@etech.io";
+    public string SuperAdminName { get; set; } = "Platform Super Admin";
+    public string SuperAdminPassword { get; set; } = "Passw0rd!";
 }

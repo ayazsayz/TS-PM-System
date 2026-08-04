@@ -6,6 +6,7 @@ public static class AppRoles
     public const string Employee = "Employee";
     public const string Manager = "Manager";
     public const string Admin = "Admin";
+    public const string SuperAdmin = "SuperAdmin";
 
-    public static readonly string[] All = [Employee, Manager, Admin];
+    public static readonly string[] All = [Employee, Manager, Admin, SuperAdmin];
 }

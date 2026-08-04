@@ -20,6 +20,8 @@ public interface IAppDbContext
     DbSet<Notification> Notifications { get; }
     DbSet<Office> Offices { get; }
     DbSet<AttendanceSession> AttendanceSessions { get; }
+    DbSet<Plan> Plans { get; }
+    DbSet<Subscription> Subscriptions { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

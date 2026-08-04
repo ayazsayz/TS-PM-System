@@ -41,6 +41,11 @@ public static class AuthDependencyInjection
             .AddPolicy(Policies.ManagerOnly, p => p.RequireRole(Roles.Manager, Roles.Admin))
             .AddPolicy(Policies.AdminOnly, p => p.RequireRole(Roles.Admin));
 
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(Policies.SuperAdminOnly, p => p.RequireRole(Roles.SuperAdmin));
+        });
+
         return services;
     }
 }
@@ -49,4 +54,5 @@ public static class Policies
 {
     public const string ManagerOnly = "ManagerOnly";
     public const string AdminOnly = "AdminOnly";
+    public const string SuperAdminOnly = "SuperAdminOnly";
 }
