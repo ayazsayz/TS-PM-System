@@ -19,6 +19,10 @@ public static class DependencyInjection
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<IUserDirectory, UserDirectory>();
         services.AddScoped<IUserAdminService, UserAdminService>();
+        services.AddScoped<Tspm.Application.SuperAdmin.ISuperAdminUserService, SuperAdminUserService>();
+        services.AddScoped<Tspm.Application.SuperAdmin.ISuperAdminAuditService, SuperAdminAuditService>();
+        services.AddScoped<Tspm.Application.SuperAdmin.ISuperAdminImpersonationService, SuperAdminImpersonationService>();
+        services.AddScoped<IAuditLogger, AuditLogger>();
 
         services
             .AddIdentityCore<ApplicationUser>(o =>

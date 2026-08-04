@@ -25,6 +25,9 @@ public static class DbInitializer
     /// <summary>The demo organization all demo data belongs to (when Seed:DemoData is on).</summary>
     public static readonly Guid DemoOrgId = Id("org:demo");
 
+    /// <summary>Dedicated organization the platform SuperAdmin account belongs to. Never shown in tenant data.</summary>
+    public static readonly Guid PlatformOrgId = Id("org:platform");
+
     public static async Task SeedAsync(
         AppDbContext db,
         UserManager<ApplicationUser> userManager,
@@ -37,6 +40,12 @@ public static class DbInitializer
         // Roles are global and always seeded. There is no bootstrap admin: organizations
         // (and their first admin) are created via public registration.
         await SeedRolesAsync(roleManager);
+
+        // The platform SuperAdmin is always seeded so the admin portal can never be locked out.
+        await SeedSuperAdminAsync(db, userManager, options);
+
+        // Default subscription plans are always seeded so tenants can be assigned a plan.
+        await SeedPlansAsync(db);
 
         if (!options.DemoData) return;
 
@@ -92,10 +101,78 @@ public static class DbInitializer
         }
     }
 
-    // ---- Users ----
-    private record SeedUser(string Key, string Email, string Name, string Initials, string Title, string Dept, string Color, string[] Roles);
+    // ---- Platform SuperAdmin ----
+    private static async Task SeedSuperAdminAsync(AppDbContext db, UserManager<ApplicationUser> userManager, SeedOptions options)
+    {
+        if (!await db.Organizations.IgnoreQueryFilters().AnyAsync(o => o.Id == PlatformOrgId))
+        {
+            db.Organizations.Add(new Organization
+            {
+                Id = PlatformOrgId,
+                Name = "Platform",
+                Slug = "platform",
+                IsActive = true,
+            });
+            await db.SaveChangesAsync();
+        }
 
-    private static readonly SeedUser[] Users =
+        if (await userManager.FindByEmailAsync(options.SuperAdminEmail) is not null) return;
+
+        var user = new ApplicationUser
+        {
+            Id = Id($"user:{options.SuperAdminEmail}"),
+            OrganizationId = PlatformOrgId,
+            UserName = options.SuperAdminEmail,
+            Email = options.SuperAdminEmail,
+            EmailConfirmed = true,
+            FullName = options.SuperAdminName,
+            Initials = InitialsOf(options.SuperAdminName),
+            AvatarColor = "#101828",
+        };
+        var created = await userManager.CreateAsync(user, options.SuperAdminPassword);
+        if (!created.Succeeded)
+            throw new InvalidOperationException(
+                $"Failed to seed SuperAdmin user: {string.Join("; ", created.Errors.Select(e => e.Description))}");
+        await userManager.AddToRoleAsync(user, Identity.Roles.SuperAdmin);
+    }
+
+    // ---- Plans ----
+    private record SeedPlan(string Code, string Name, string Description, decimal Monthly, decimal Yearly, int? MaxUsers, int? MaxProjects, string Features, int SortOrder);
+
+    private static readonly SeedPlan[] DefaultPlans =
+    [
+        new("free",       "Free",       "Get started with essential timesheet features.",       0,   0,     3,   2,  "timesheets,attendance",                 0),
+        new("starter",    "Starter",    "For small teams getting organized.",                    19,  190,   10,  10, "timesheets,attendance,projects,reports", 1),
+        new("pro",        "Pro",        "For growing organizations that need advanced tools.",   49,  490,   50,  50, "timesheets,attendance,projects,reports,api,integrations", 2),
+        new("enterprise", "Enterprise", "Unlimited scale with SSO and priority support.",         149, 1490,  null, null, "timesheets,attendance,projects,reports,api,integrations,sso,audit,priority-support", 3),
+    ];
+
+    private static async Task SeedPlansAsync(AppDbContext db)
+    {
+        foreach (var p in DefaultPlans)
+        {
+            if (await db.Plans.AnyAsync(x => x.Code == p.Code)) continue;
+            db.Plans.Add(new Plan
+            {
+                Id = Id($"plan:{p.Code}"),
+                Code = p.Code,
+                Name = p.Name,
+                Description = p.Description,
+                MonthlyPrice = p.Monthly,
+                YearlyPrice = p.Yearly,
+                Currency = "USD",
+                MaxUsers = p.MaxUsers,
+                MaxProjects = p.MaxProjects,
+                Features = p.Features,
+                SortOrder = p.SortOrder,
+                IsActive = true,
+            });
+        }
+        await db.SaveChangesAsync();
+    }
+
+    // ---- Users ----
+    private record SeedUser(string Key, string Email, string Name, string Initials, string Title, string Dept, string Color, string[] Roles); private static readonly SeedUser[] Users =
     [
         new("alex", "alex.morgan@etech.io", "Alex Morgan", "AM", "Senior Consultant", "Delivery", "#475467", [Identity.Roles.Employee, Identity.Roles.Manager]),
         new("sarah", "sarah.chen@etech.io", "Sarah Chen", "SC", "Consultant", "Engineering", "#4757E6", [Identity.Roles.Employee]),

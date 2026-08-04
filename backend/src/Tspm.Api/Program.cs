@@ -28,6 +28,9 @@ builder.Services.AddControllers(o =>
 {
     o.Filters.Add<ValidationFilter>();
     o.Filters.Add<MustChangePasswordFilter>();
+}).AddJsonOptions(o =>
+{
+    o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddProblemDetails();

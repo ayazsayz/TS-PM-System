@@ -6,6 +6,7 @@ import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { CommandPalette } from './CommandPalette';
 import { TweaksPanel } from './TweaksPanel';
+import { ImpersonationBanner } from './ImpersonationBanner';
 
 export function AppShell() {
   const paletteOpen = useUiStore((s) => s.paletteOpen);
@@ -41,6 +42,7 @@ export function AppShell() {
       <Sidebar />
 
       <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+        <ImpersonationBanner />
         <TopBar />
         <main
           style={{
