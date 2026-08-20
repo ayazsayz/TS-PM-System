@@ -270,6 +270,14 @@ the default palette, also update `defaultAccent` (or edit the accent options in
 
 Newest first. Update this on every meaningful change.
 
+### 2026-07-20 — Same-origin production build (MonsterASP.NET deploy)
+- **API base is now relative in production.** `apiClient` uses `VITE_API_URL ?? ''`, and the new
+  `.env.production` leaves it empty, so a production build calls `/api/...` on its own origin. In
+  UAT the .NET API serves this SPA from `wwwroot`, so there's no separate API host and no CORS.
+  Dev is unchanged — `.env` still points at the local API on `:5041`.
+- Deploy tooling and runbook live in the backend: `backend/deploy/build-uat.ps1` and
+  `backend/deploy/README-UAT.md`.
+
 ### 2026-07-19 — Attendance: check in / out with location
 - **Top-bar check-in widget** (`layout/CheckInWidget.tsx`) — a status pill plus a check in/out
   button on every screen; the elapsed time ticks each minute.

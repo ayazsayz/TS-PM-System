@@ -301,7 +301,38 @@ dotnet test  Tspm.slnx
 
 ---
 
+## Deployment (UAT → MonsterASP.NET)
+
+The app deploys as **one site**: the API serves the built React SPA from `wwwroot/` and its own
+API under `/api/*`, backed by one MonsterASP MSSQL database. Same origin, so no CORS; fits the
+free plan's 1-site / 1-database limit. MonsterASP supports .NET 10 + MSSQL 2025 natively, so this
+is a plain framework-dependent publish.
+
+```powershell
+./deploy/build-uat.ps1     # builds SPA → wwwroot, publishes API → deploy/publish/
+```
+
+Upload `deploy/publish/` via WebDeploy or FTP, then set the connection string and JWT signing key
+**on the server** (the committed `appsettings.Production.json` ships with blank secrets). The
+schema is created automatically — EF Core migrations run on first startup. Full step-by-step:
+[`deploy/README-UAT.md`](deploy/README-UAT.md).
+
+---
+
 ## Changelog
+
+### 2026-07-20 — Deployment: single-site hosting for MonsterASP.NET (UAT)
+- **API now serves the SPA.** `Program.cs` adds `UseDefaultFiles` + `UseStaticFiles` and a
+  `MapFallbackToFile("index.html")` for client-side routes. A `/api/{**rest}` catch-all makes
+  unknown API paths 404 (as `problem+json`) instead of being masked by the SPA shell.
+- **`appsettings.Production.json`** — blank connection string + JWT key by design; filled on the
+  server, never committed.
+- **`deploy/build-uat.ps1`** — builds the SPA into `wwwroot`, publishes the API to
+  `deploy/publish/`. Robust against PowerShell treating native-tool stderr warnings as failures.
+- **`deploy/README-UAT.md`** — MonsterASP runbook (DB, WebDeploy/FTP, secrets, HTTPS).
+- Verified locally: the published bundle in Production serves the SPA at `/`, deep links, the API
+  under `/api`, and 404s unknown API routes — all from one process.
+
 
 Newest first.
 

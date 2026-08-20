@@ -5,6 +5,10 @@ obj/
 [Rr]elease/
 artifacts/
 
+# Built SPA copied in at publish time (see deploy/build-uat.ps1) and publish output
+src/Tspm.Api/wwwroot/
+/deploy/publish/
+
 # User-specific / secrets
 *.user
 *.suo

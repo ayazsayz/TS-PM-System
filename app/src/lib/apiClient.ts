@@ -6,7 +6,10 @@
  * - Surfaces RFC-9457 ProblemDetails / FluentValidation errors as ApiError.
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5080';
+// Dev sets VITE_API_URL to the local API (see .env). In the production build the value is
+// empty, so requests go to the same origin (/api/...) — the API serves the SPA and there is
+// no cross-origin call, hence no CORS.
+const BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
 const ACCESS_KEY = 'tspm.accessToken';
 const REFRESH_KEY = 'tspm.refreshToken';

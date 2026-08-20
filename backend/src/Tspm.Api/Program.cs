@@ -76,10 +76,24 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseSerilogRequestLogging();
+
+// Serve the built React SPA from wwwroot (populated at publish time). In Development
+// wwwroot is empty and these no-op, since the SPA runs on the Vite dev server instead.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseCors(CorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// An unknown /api/* path 404s (this catch-all is more specific than the SPA fallback, and
+// less specific than any real controller route, so matched endpoints still win).
+app.Map("/api/{**rest}", () => Results.NotFound());
+
+// SPA client-side routing: any other unmatched request returns index.html so deep links
+// like /attendance resolve to the app rather than a 404.
+app.MapFallbackToFile("index.html");
 
 app.Run();
 return;
